@@ -1,5 +1,12 @@
 # @dreki-gg/pi-plan-mode
 
+## [0.30.1](https://github.com/jalbarrang/pi-plan-mode/compare/v0.30.0...v0.30.1) (2026-07-11)
+
+
+### Bug Fixes
+
+* exclude __tests__ from the npm tarball ([#2](https://github.com/jalbarrang/pi-plan-mode/issues/2)) ([a9c1c40](https://github.com/jalbarrang/pi-plan-mode/commit/a9c1c40a647271b5791b52558c3faad8dcab0847))
+
 ## [0.30.0](https://github.com/jalbarrang/pi-plan-mode/compare/v0.29.0...v0.30.0) (2026-07-11)
 
 
