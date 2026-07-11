@@ -1,5 +1,12 @@
 # @dreki-gg/pi-plan-mode
 
+## [0.30.0](https://github.com/jalbarrang/pi-plan-mode/compare/v0.29.0...v0.30.0) (2026-07-11)
+
+
+### Features
+
+* extract pi-plan-mode from dreki-gg/pi-extensions monorepo ([39187ad](https://github.com/jalbarrang/pi-plan-mode/commit/39187ad986ab43c696e3ec053704d991e8dffb9a))
+
 ## 0.29.0
 
 ### Minor Changes
