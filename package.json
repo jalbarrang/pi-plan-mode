@@ -1,7 +1,7 @@
 {
   "name": "@dreki-gg/pi-plan-mode",
-  "version": "0.30.1",
-  "description": "Two-phase planning workflow for pi \u2014 plan with claude-opus-4-6:medium, execute with gpt-5.5:low, with file-based plan-ledger handoff (default .taskman/plans/, configurable via .taskmanrc)",
+  "version": "0.31.0",
+  "description": "Two-phase planning workflow for pi — plan with claude-opus-4-6:medium, execute with gpt-5.5:low, with file-based plan-ledger handoff (default .taskman/plans/, configurable via .taskmanrc)",
   "keywords": [
     "pi-package"
   ],

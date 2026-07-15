@@ -1,5 +1,16 @@
 # @dreki-gg/pi-plan-mode
 
+## [0.31.0](https://github.com/jalbarrang/pi-plan-mode/compare/v0.30.1...v0.31.0) (2026-07-15)
+
+
+### ⚠ BREAKING CHANGES
+
+* the default ledger moved from .plans/ to .taskman/plans/ with no fallback. Migrate with 'git mv .plans .taskman/plans' or keep the old location with a .taskmanrc containing {"plans-root": ".plans"}.
+
+### Features
+
+* resolve plans root via .taskmanrc, default .taskman/plans/ ([ab7eebf](https://github.com/jalbarrang/pi-plan-mode/commit/ab7eebf92fa4e2a6d6b2f233cb6a3658f2f9492a))
+
 ## [0.30.1](https://github.com/jalbarrang/pi-plan-mode/compare/v0.30.0...v0.30.1) (2026-07-11)
 
 
