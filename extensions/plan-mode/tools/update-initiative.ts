@@ -17,14 +17,7 @@ import {
   readInitiativesManifest,
   upsertInitiativeEntry,
 } from '@dreki-gg/taskman';
-
-/** Normalize an initiative hint (`x` or `.plans/x`) to a bare name. */
-function normalizeName(hint: string): string {
-  return hint
-    .replace(/^\.plans\//, '')
-    .replace(/\/+$/, '')
-    .trim();
-}
+import { normalizePlanName as normalizeName } from '@dreki-gg/taskman';
 
 export function registerUpdateInitiativeTool(pi: ExtensionAPI, runPlanIO: RunPlanIO): void {
   pi.registerTool({
@@ -39,7 +32,7 @@ export function registerUpdateInitiativeTool(pi: ExtensionAPI, runPlanIO: RunPla
       'An initiative usually reaches done automatically once every member plan is closed \u2014 prefer letting projection handle it.',
     ],
     parameters: Type.Object({
-      initiative: Type.String({ description: 'Initiative name (or .plans/<name>) to update' }),
+      initiative: Type.String({ description: 'Initiative name (or <plans-root>/<name>) to update' }),
       status: StringEnum(['in-progress', 'done', 'superseded', 'abandoned'] as const),
       reason: Type.Optional(
         Type.String({ description: 'Why — recorded in the registry (esp. superseded/abandoned)' }),

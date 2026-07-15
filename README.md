@@ -2,13 +2,25 @@
 
 Two-phase planning workflow for [pi](https://github.com/badlogic/pi-mono).
 
-Plan with `claude-opus-4-6:medium`, execute with `gpt-5.5:low`. Plans are persisted as files in `.plans/` for clean context handoff between models.
+Plan with `claude-opus-4-6:medium`, execute with `gpt-5.5:low`. Plans are persisted as files in the plan ledger (default `.taskman/plans/`) for clean context handoff between models.
 
 ## Install
 
 ```bash
 pi install npm:@dreki-gg/pi-plan-mode
 ```
+
+## Where plans live (`.taskmanrc`)
+
+The plans root is resolved the same way the [taskman](https://github.com/jalbarrang/taskman) CLI resolves it: the default is `.taskman/plans/`, overridable per-project by a `.taskmanrc` JSON file in the working directory whose `plans-root` value IS the ledger folder (it contains `plans.jsonl` directly):
+
+```json
+{ "plans-root": ".plans" }
+```
+
+Resolution is cwd-only by design — no walk-up, no env var — so the extension, the `taskman` CLI, and the `clean` command always agree on which folder holds the ledger. A malformed `.taskmanrc` fails loudly at load instead of silently writing plans to the wrong place. External-target writes (`submit_plan` / `revise_plan` / `add_task` with `target`) honour the **target repo's** own `.taskmanrc`.
+
+Throughout this README, `.taskman/plans/` refers to the resolved plans root.
 
 Recommended companions:
 
@@ -77,7 +89,7 @@ CLI archives closed initiatives the same way it archives closed plans.
 
 ### Plan lifecycle status
 
-The registry (`.plans/plans.jsonl`) `status` is a **projection of task state**, not a
+The registry (`.taskman/plans/plans.jsonl`) `status` is a **projection of task state**, not a
 hand-maintained flag. Marking every task `done`/`skipped` (via `update_task`, in any
 session or model) automatically flips the plan to `done` — completion is no longer
 coupled to a formal in-session execution run.
@@ -105,13 +117,13 @@ silently overridden by whatever plan was last submitted in the session.
 /plan add authentication middleware with JWT support
 ```
 
-The planner has access to read-only tools plus `edit`/`write` restricted to `.plans/` files. Bash is locked to a strict allowlist of safe commands.
+The planner has access to read-only tools plus `edit`/`write` restricted to files inside the plans root. Bash is locked to a strict allowlist of safe commands.
 
 The planner:
 - Inspects the codebase using read-only tools
 - Uses `questionnaire` when requirements are underspecified
-- Creates `.plans/<kebab-name>/PLAN.md` with the full numbered plan
-- Creates `.plans/<kebab-name>/START-PROMPT.md` — a self-contained handoff prompt with all context needed to execute without the planning conversation
+- Creates `.taskman/plans/<kebab-name>/PLAN.md` with the full numbered plan
+- Creates `.taskman/plans/<kebab-name>/START-PROMPT.md` — a self-contained handoff prompt with all context needed to execute without the planning conversation
 - Can add supporting files in the same directory for extra context
 
 ### 2. Choose next step
@@ -138,7 +150,7 @@ When **Execute Plan** is selected:
 ## Plan directory structure
 
 ```
-.plans/
+.taskman/plans/               # or your .taskmanrc plans-root
 ├── plans.jsonl               # Plan registry — plan status lifecycle
 ├── initiatives.jsonl         # Initiative registry — groups member plans
 ├── auth-overhaul/            # An initiative directory
@@ -151,7 +163,7 @@ When **Execute Plan** is selected:
 
 ### plans.json
 
-The extension automatically maintains `.plans/plans.json` to track plan lifecycle:
+The extension automatically maintains the ledger's `plans.json` to track plan lifecycle:
 
 ```json
 {
@@ -175,14 +187,14 @@ Plans start as `"in-progress"` when created and are marked `"done"` when all exe
 ## Cleaning completed plans
 
 Use the CLI to clean closed plans (`done` / `superseded` / `abandoned`). By default it
-**archives** plan directories to `.plans/.archive/<name>/` — keeping HANDOFF.md and
+**archives** plan directories to `.taskman/plans/.archive/<name>/` — keeping HANDOFF.md and
 tasks.jsonl as a record — rather than deleting them:
 
 ```bash
 # Preview what would be cleaned (no changes)
 npx @dreki-gg/pi-plan-mode clean --dry-run
 
-# Archive closed plans to .plans/.archive/ and update plans.jsonl
+# Archive closed plans to <plans-root>/.archive/ and update plans.jsonl
 npx @dreki-gg/pi-plan-mode clean
 
 # Permanently delete instead of archiving
@@ -202,7 +214,7 @@ name: Clean Plans
 on:
   push:
     branches: [main]
-    paths: ['.plans/**']
+    paths: ['.taskman/plans/**'] # match your .taskmanrc plans-root
 
 jobs:
   clean:
@@ -217,12 +229,12 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add .plans/
+          git add .taskman/plans/
           git diff --cached --quiet || git commit -m "chore: clean completed plans"
           git push
 ```
 
-### Should you gitignore `.plans/`?
+### Should you gitignore the plans root?
 
 **No.** Commit your plans — they provide decision history and execution context. Use the `clean` CLI to remove done plans after merge, keeping the directory lean. Plans are execution blueprints, not permanent documentation; for lasting decisions, use ADRs.
 
@@ -243,6 +255,6 @@ pi-plan-mode clean [--dry-run] [--purge]
 
 | Option      | Description                                                        |
 | ----------- | ----------------------------------------------------------------- |
-| `clean`     | Archive closed plan directories to `.plans/.archive/`, update manifest |
+| `clean`     | Archive closed plan directories to `<plans-root>/.archive/`, update manifest |
 | `--dry-run` | Show what would be cleaned without changing anything              |
 | `--purge`   | Permanently delete instead of archiving                           |

@@ -17,6 +17,7 @@ import { readPlansManifest } from '@dreki-gg/taskman';
 import { readTasksJsonl } from '@dreki-gg/taskman';
 import { loadHandoff } from '@dreki-gg/taskman';
 import { firstPlanReference } from './tokens.js';
+import { PLANS_ROOT, plansPath } from '../ledger.js';
 
 export interface ResolvedPlanReference {
   name: string;
@@ -43,7 +44,8 @@ export function resolvePlanReference(
     const entry = manifest.find((candidate) => candidate.name === slug);
     if (!entry) return undefined;
 
-    const dir = `.plans/${slug}`;
+    // Ledger-relative: the runtime root is the plans folder itself.
+    const dir = slug;
     const snapshot = yield* Effect.orElseSucceed(readTasksJsonl(dir), () => undefined);
     const handoff = yield* loadHandoff(dir);
 
@@ -79,7 +81,7 @@ export function buildPlanContextPack(
   return [
     `# Referenced plan: ${title} (\`${name}\`)`,
     `The user referenced this plan with \`@plan:${name}\`. Status: **${status}** — ${done}/${tasks.length} tasks done.`,
-    `Use this as context. The source of truth is \`.plans/${name}/\` (tasks.jsonl + HANDOFF.md) — inspect it with tools if you need more detail.`,
+    `Use this as context. The source of truth is \`${plansPath(name)}/\` (tasks.jsonl + HANDOFF.md) — inspect it with tools if you need more detail.`,
     '',
     '## Tasks',
     '',
@@ -109,7 +111,7 @@ export function registerPlanReferenceContext(pi: ExtensionAPI, runPlanIO: RunPla
       return {
         message: {
           customType: 'plan-reference-context',
-          content: `The prompt referenced @plan:${slug}, but no plan with that name exists in .plans/plans.jsonl.`,
+          content: `The prompt referenced @plan:${slug}, but no plan with that name exists in ${PLANS_ROOT}/plans.jsonl.`,
           display: true,
           details: { slug, resolved: false },
         },

@@ -3,7 +3,7 @@ import { chdir } from 'node:process';
 import { mkdtemp, rm, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { makePlanRuntime } from '@dreki-gg/taskman';
+import { DEFAULT_PLANS_ROOT, makePlanRuntime } from '@dreki-gg/taskman';
 import { readPlansManifest } from '@dreki-gg/taskman';
 import {
   readInitiativesManifest,
@@ -150,14 +150,14 @@ describe('submit_plan tool — external target', () => {
       const result = await tool.execute('c', baseParams({ target: targetDir }));
 
       // Plan landed in the target repo's registry.
-      const targetManifest = await readFile(join(targetDir, '.plans', 'plans.jsonl'), 'utf-8');
+      const targetManifest = await readFile(join(targetDir, DEFAULT_PLANS_ROOT, 'plans.jsonl'), 'utf-8');
       expect(targetManifest).toContain('auth-jwt');
-      const tasks = await readFile(join(targetDir, '.plans', 'auth-jwt', 'tasks.jsonl'), 'utf-8');
+      const tasks = await readFile(join(targetDir, DEFAULT_PLANS_ROOT, 'auth-jwt', 'tasks.jsonl'), 'utf-8');
       expect(tasks).toContain('t-001');
 
       // Nothing leaked into the current working directory.
       await expect(
-        readFile(join(dir, '.plans', 'plans.jsonl'), 'utf-8'),
+        readFile(join(dir, DEFAULT_PLANS_ROOT, 'plans.jsonl'), 'utf-8'),
       ).rejects.toThrow();
 
       // Author-only: the active-plan callback is NOT invoked for external targets.

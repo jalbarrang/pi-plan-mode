@@ -8,6 +8,7 @@
 import type { ExtensionCommandContext } from '@earendil-works/pi-coding-agent';
 import type { RunPlanIO } from '@dreki-gg/taskman';
 import { InitiativeListing } from '@dreki-gg/taskman';
+import { PLANS_ROOT } from '../ledger.js';
 
 export type StatusFilter = InitiativeListing.StatusFilter;
 export type InitiativeListItem = InitiativeListing.InitiativeListItem;
@@ -25,7 +26,7 @@ export async function handleListInitiatives(
 ): Promise<void> {
   const items = await runPlanIO(InitiativeListing.loadInitiativeListItems());
   if (items.length === 0) {
-    ctx.ui.notify('No initiatives found in .plans/initiatives.jsonl', 'info');
+    ctx.ui.notify(`No initiatives found in ${PLANS_ROOT}/initiatives.jsonl`, 'info');
     return;
   }
 

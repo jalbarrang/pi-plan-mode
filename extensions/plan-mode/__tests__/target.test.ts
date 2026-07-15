@@ -8,6 +8,8 @@ import {
   assertTargetReceived,
   assertTargetTaskAppended,
 } from '../target.js';
+import { resolveTargetLedger } from '../ledger.js';
+import { DEFAULT_PLANS_ROOT } from '@dreki-gg/taskman';
 
 let dir: string;
 
@@ -49,25 +51,38 @@ describe('resolvePlanTarget', () => {
   });
 });
 
+describe('resolveTargetLedger', () => {
+  test('defaults to the taskman default plans root', () => {
+    expect(resolveTargetLedger(dir)).toBe(join(dir, DEFAULT_PLANS_ROOT));
+  });
+
+  test("honours the target's .taskmanrc plans-root", async () => {
+    await writeFile(join(dir, '.taskmanrc'), '{"plans-root": ".plans"}\n');
+    expect(resolveTargetLedger(dir)).toBe(join(dir, '.plans'));
+  });
+});
+
 describe('stale-target guards', () => {
+  const ledger = () => join(dir, DEFAULT_PLANS_ROOT);
+
   test('assertTargetReceived throws when the target tasks file is absent', async () => {
-    await expect(assertTargetReceived(dir, '.plans/gap')).rejects.toThrow(
+    await expect(assertTargetReceived(ledger(), 'gap')).rejects.toThrow(
       /does not support external targets/,
     );
   });
 
   test('assertTargetReceived passes when the target tasks file exists', async () => {
-    await mkdir(join(dir, '.plans', 'gap'), { recursive: true });
-    await writeFileFs(join(dir, '.plans', 'gap', 'tasks.jsonl'), '{"_type":"meta"}\n');
-    await expect(assertTargetReceived(dir, '.plans/gap')).resolves.toBeUndefined();
+    await mkdir(join(ledger(), 'gap'), { recursive: true });
+    await writeFileFs(join(ledger(), 'gap', 'tasks.jsonl'), '{"_type":"meta"}\n');
+    await expect(assertTargetReceived(ledger(), 'gap')).resolves.toBeUndefined();
   });
 
   test('assertTargetTaskAppended throws when the task id is not in the target file', async () => {
-    await mkdir(join(dir, '.plans', 'gap'), { recursive: true });
-    await writeFileFs(join(dir, '.plans', 'gap', 'tasks.jsonl'), '{"id":"t-001"}\n');
-    await expect(assertTargetTaskAppended(dir, '.plans/gap', 't-002')).rejects.toThrow(
+    await mkdir(join(ledger(), 'gap'), { recursive: true });
+    await writeFileFs(join(ledger(), 'gap', 'tasks.jsonl'), '{"id":"t-001"}\n');
+    await expect(assertTargetTaskAppended(ledger(), 'gap', 't-002')).rejects.toThrow(
       /external targets/,
     );
-    await expect(assertTargetTaskAppended(dir, '.plans/gap', 't-001')).resolves.toBeUndefined();
+    await expect(assertTargetTaskAppended(ledger(), 'gap', 't-001')).resolves.toBeUndefined();
   });
 });

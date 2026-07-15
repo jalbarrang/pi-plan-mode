@@ -3,7 +3,7 @@
  *
  * `update_task` tracks task status; this is its plan-level counterpart
  * (FEEDBACK #2/#3). It lets an agent or user close a plan without a full
- * execution run or hand-editing `.plans/plans.jsonl`:
+ * execution run or hand-editing the ledger's `plans.jsonl`:
  *   - done       — completed (work shipped)
  *   - superseded — another plan absorbed the work
  *   - abandoned  — won't do / rejected
@@ -19,14 +19,7 @@ import type { PlanStatus } from '../types.js';
 import type { RunPlanIO } from '@dreki-gg/taskman';
 import { readPlansManifest, upsertPlanEntry } from '@dreki-gg/taskman';
 import { reconcileInitiativeForPlan } from '@dreki-gg/taskman';
-
-/** Normalize a plan hint (`my-plan` or `.plans/my-plan`) to a bare name. */
-function normalizeName(hint: string): string {
-  return hint
-    .replace(/^\.plans\//, '')
-    .replace(/\/+$/, '')
-    .trim();
-}
+import { normalizePlanName as normalizeName } from '@dreki-gg/taskman';
 
 export function registerUpdatePlanTool(pi: ExtensionAPI, runPlanIO: RunPlanIO): void {
   pi.registerTool({
@@ -41,7 +34,7 @@ export function registerUpdatePlanTool(pi: ExtensionAPI, runPlanIO: RunPlanIO): 
       'Prefer update_task for per-task progress; update_plan is for the whole plan\u2019s lifecycle.',
     ],
     parameters: Type.Object({
-      plan: Type.String({ description: 'Plan name (or .plans/<name>) to update' }),
+      plan: Type.String({ description: 'Plan name (or <plans-root>/<name>) to update' }),
       status: StringEnum(['in-progress', 'done', 'superseded', 'abandoned'] as const),
       reason: Type.Optional(
         Type.String({ description: 'Why — recorded in the registry (esp. superseded/abandoned)' }),

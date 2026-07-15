@@ -46,7 +46,7 @@ export function registerReconcilePlansTool(pi: ExtensionAPI, runPlanIO: RunPlanI
       'Walk every plan and report where the registry status disagrees with task state (drift), plus orphan task dirs and registry-only plans. Pass apply:true to repair safe in-progress↔done drift.',
     promptSnippet: 'Detect/repair drift between tasks.jsonl and the plan registry',
     promptGuidelines: [
-      'Use reconcile_plans to audit .plans/ when registry status looks stale (e.g. a fully-done plan still in-progress).',
+      'Use reconcile_plans to audit the plan ledger when registry status looks stale (e.g. a fully-done plan still in-progress).',
       'Run it read-only first; pass apply:true once you have reviewed the reported drift.',
       'apply:true only records completion (in-progress→done). It never regresses a done plan back to in-progress — if a done plan shows incomplete tasks (work merged but tasks not marked), mark those tasks done instead.',
     ],

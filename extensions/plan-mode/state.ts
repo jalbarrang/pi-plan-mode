@@ -28,7 +28,10 @@ export class PlanModeState {
     if (saved?.data) {
       this.planEnabled = saved.data.planEnabled ?? this.planEnabled;
       this.executing = saved.data.executing ?? this.executing;
-      this.planDir = saved.data.planDir ?? this.planDir;
+      // planDir is ledger-relative (a bare plan name). Sessions persisted by
+      // older versions stored `.plans/<name>` — normalize to the last segment.
+      const savedDir = saved.data.planDir;
+      this.planDir = savedDir ? (savedDir.replace(/\/+$/, '').split('/').pop() ?? savedDir) : this.planDir;
       this.plan = saved.data.plan ?? this.plan;
       this.executionStartIdx = saved.data.executionStartIdx ?? this.executionStartIdx;
     }

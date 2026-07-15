@@ -19,13 +19,8 @@ import { readInitiativesManifest } from '@dreki-gg/taskman';
 import { readTasksJsonl } from '@dreki-gg/taskman';
 import { initiativeRollup, membersOf, type InitiativeRollup } from '@dreki-gg/taskman';
 
-/** Normalize an initiative hint (`x` or `.plans/x`) to a bare name. */
-function normalizeName(hint: string): string {
-  return hint
-    .replace(/^\.plans\//, '')
-    .replace(/\/+$/, '')
-    .trim();
-}
+import { normalizePlanName as normalizeName } from '@dreki-gg/taskman';
+import { PLANS_ROOT } from '../ledger.js';
 
 interface TaskCount {
   resolved: number;
@@ -40,7 +35,7 @@ function loadTaskCounts(
     const counts = new Map<string, TaskCount>();
     for (const plan of plans) {
       const snapshot = yield* Effect.orElseSucceed(
-        readTasksJsonl(`.plans/${plan.name}`),
+        readTasksJsonl(plan.name),
         () => undefined,
       );
       const total = snapshot?.tasks.length ?? 0;
@@ -74,7 +69,7 @@ export function registerInitiativeStatusTool(pi: ExtensionAPI, runPlanIO: RunPla
       initiative: Type.Optional(
         Type.String({
           description:
-            'Initiative name (or .plans/<name>). Omit to use the sole in-progress initiative.',
+            'Initiative name (or <plans-root>/<name>). Omit to use the sole in-progress initiative.',
         }),
       ),
     }),
@@ -104,7 +99,7 @@ export function registerInitiativeStatusTool(pi: ExtensionAPI, runPlanIO: RunPla
           });
           const text = inProgress.length
             ? `No single active initiative — ${inProgress.length} in-progress. Pass { initiative: "<name>" }.\n${rows.join('\n')}`
-            : 'No in-progress initiative found in .plans/initiatives.jsonl.';
+            : `No in-progress initiative found in ${PLANS_ROOT}/initiatives.jsonl.`;
           return {
             content: [{ type: 'text' as const, text }],
             details: {

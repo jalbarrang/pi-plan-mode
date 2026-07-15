@@ -3,7 +3,7 @@ import { chdir } from 'node:process';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { makePlanRuntime } from '@dreki-gg/taskman';
+import { DEFAULT_PLANS_ROOT, makePlanRuntime } from '@dreki-gg/taskman';
 import { readInitiativesManifest } from '@dreki-gg/taskman';
 import { registerSubmitInitiativeTool } from '../tools/submit-initiative.js';
 
@@ -51,7 +51,7 @@ describe('submit_initiative tool', () => {
     expect(entry.name).toBe('auth-overhaul');
     expect(entry.status).toBe('in-progress');
 
-    const md = await readFile(join(dir, '.plans/auth-overhaul/INITIATIVE.md'), 'utf-8');
+    const md = await readFile(join(dir, DEFAULT_PLANS_ROOT, 'auth-overhaul/INITIATIVE.md'), 'utf-8');
     expect(md).toMatch(/Break auth into plans/);
     expect(result.content?.[0]?.text).toMatch(/initiative: "auth-overhaul"/);
   });

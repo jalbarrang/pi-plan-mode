@@ -64,7 +64,7 @@ const task = (id: string, over: Partial<TaskRecord> = {}): TaskRecord => ({
 });
 
 async function seed(plan: PlanData): Promise<void> {
-  const dir = `.plans/${plan.planName}`;
+  const dir = plan.planName;
   await runPlanIO(
     writeTasksJsonl(
       dir,
@@ -100,10 +100,10 @@ describe('revise_plan tool', () => {
     const { tool } = setup(plan);
     await tool.execute('c', { plan: 'p', title: 'New title', handoff: 'new handoff' });
 
-    const snapshot = await runPlanIO(readTasksJsonl('.plans/p'));
+    const snapshot = await runPlanIO(readTasksJsonl('p'));
     expect(snapshot?.meta.title).toBe('New title');
     expect(snapshot?.tasks.map((t) => t.id)).toEqual(['t-001', 't-002']);
-    expect(await runPlanIO(loadHandoff('.plans/p'))).toBe('new handoff');
+    expect(await runPlanIO(loadHandoff('p'))).toBe('new handoff');
     const [entry] = await runPlanIO(readPlansManifest());
     expect(entry.title).toBe('New title');
     expect(entry.status).toBe('in-progress');
@@ -131,7 +131,7 @@ describe('revise_plan tool', () => {
       ],
     });
 
-    const snapshot = await runPlanIO(readTasksJsonl('.plans/p'));
+    const snapshot = await runPlanIO(readTasksJsonl('p'));
     const tasks = snapshot!.tasks;
     expect(tasks.map((t) => t.id)).toEqual(['t-001', 't-003']);
     const t1 = tasks.find((t) => t.id === 't-001')!;

@@ -8,6 +8,7 @@
 import type { ExtensionCommandContext } from '@earendil-works/pi-coding-agent';
 import type { RunPlanIO } from '@dreki-gg/taskman';
 import { PlanListing } from '@dreki-gg/taskman';
+import { PLANS_ROOT } from '../ledger.js';
 
 // Re-export the engine listing types/helpers for the rest of the extension.
 export type SortField = PlanListing.SortField;
@@ -29,7 +30,7 @@ export async function handleListPlans(
   const allItems = await runPlanIO(PlanListing.loadPlanListItems());
 
   if (allItems.length === 0) {
-    ctx.ui.notify('No plans found in .plans/plans.jsonl', 'info');
+    ctx.ui.notify(`No plans found in ${PLANS_ROOT}/plans.jsonl`, 'info');
     return;
   }
 

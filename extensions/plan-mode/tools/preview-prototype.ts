@@ -2,8 +2,9 @@
  * preview_prototype tool — available during the plan phase.
  *
  * Persists a freeform HTML prototype the agent authored (no template engine,
- * no imposed theme), writes it under .plans/_prototypes/, and best-effort opens
- * it so the user can react to the visual BEFORE the plan is finalized.
+ * no imposed theme), writes it under `<plans-root>/_prototypes/`, and
+ * best-effort opens it so the user can react to the visual BEFORE the plan is
+ * finalized.
  */
 
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
@@ -16,8 +17,10 @@ import { FileSystem } from '@dreki-gg/taskman';
 import type { RunPlanIO } from '@dreki-gg/taskman';
 import { buildPrototypeDocument } from '../html/render.js';
 import { toKebabCase } from '@dreki-gg/taskman';
+import { plansPath } from '../ledger.js';
 
-const PREVIEW_DIR = '.plans/_prototypes';
+// Ledger-relative: the runtime root is the plans folder itself.
+const PREVIEW_DIR = '_prototypes';
 
 /** Best-effort open of a file in the OS default app. Never throws. */
 function openInBrowser(filePath: string): void {
@@ -73,17 +76,19 @@ export function registerPreviewPrototypeTool(pi: ExtensionAPI, runPlanIO: RunPla
           yield* fs.writeFileString(filePath, html);
         }),
       );
-      openInBrowser(filePath);
-      ctx?.ui?.notify(`Prototype written to ${filePath} — opening for review.`, 'info');
+      // User-facing path is cwd-relative (the runtime wrote ledger-relative).
+      const displayPath = plansPath(PREVIEW_DIR, `${slug}.html`);
+      openInBrowser(displayPath);
+      ctx?.ui?.notify(`Prototype written to ${displayPath} — opening for review.`, 'info');
 
       return {
         content: [
           {
             type: 'text' as const,
-            text: `Prototype "${params.title}" rendered to ${filePath} and opened. Ask the user for feedback before submitting the plan.`,
+            text: `Prototype "${params.title}" rendered to ${displayPath} and opened. Ask the user for feedback before submitting the plan.`,
           },
         ],
-        details: { filePath, title: params.title },
+        details: { filePath: displayPath, title: params.title },
       };
     },
 

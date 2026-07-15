@@ -1,10 +1,8 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
-import { Effect } from 'effect';
 import { chdir } from 'node:process';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { FileSystem, nodeFileSystemService } from '@dreki-gg/taskman';
 import { makePlanRuntime } from '@dreki-gg/taskman';
 import { upsertPlanEntry } from '@dreki-gg/taskman';
 import { upsertInitiativeEntry } from '@dreki-gg/taskman';
@@ -13,8 +11,6 @@ import type { TaskRecord } from '../types.js';
 import { registerInitiativeStatusTool } from '../tools/initiative-status.js';
 
 const runPlanIO = makePlanRuntime();
-const run = <A, E>(program: Effect.Effect<A, E, FileSystem>): Promise<A> =>
-  Effect.runPromise(program.pipe(Effect.provideService(FileSystem, nodeFileSystemService)));
 
 interface CapturedTool {
   execute: (
@@ -59,9 +55,9 @@ describe('initiative_status tool', () => {
     await runPlanIO(
       upsertPlanEntry('ui', { status: 'in-progress', title: 'UI', initiative: 'big', depends_on: ['api'] }),
     );
-    await run(
+    await runPlanIO(
       writeTasksJsonl(
-        '.plans/api',
+        'api',
         { _type: 'meta', title: 'API', plan_name: 'api', created_at: 'n' },
         [task('t-001', 'done'), task('t-002', 'pending')],
       ),

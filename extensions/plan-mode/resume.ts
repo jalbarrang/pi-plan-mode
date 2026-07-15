@@ -16,6 +16,7 @@ import { writeExecPending } from './exec-pending.js';
 import { readTasksJsonl, writeTasksJsonl } from '@dreki-gg/taskman';
 import { enterPlanMode } from './phase-transitions.js';
 import { reactivateForExecution } from '@dreki-gg/taskman';
+import { plansPath, PLANS_ROOT } from './ledger.js';
 
 export async function executeInNewSession(
   ctx: ExtensionCommandContext,
@@ -50,7 +51,7 @@ export async function resumePlan(
   const inProgress = manifest.filter((entry) => entry.status === 'in-progress');
 
   if (inProgress.length === 0) {
-    ctx.ui.notify('No in-progress plans found in .plans/plans.jsonl', 'info');
+    ctx.ui.notify(`No in-progress plans found in ${PLANS_ROOT}/plans.jsonl`, 'info');
     return;
   }
 
@@ -60,12 +61,13 @@ export async function resumePlan(
   const choice = await ctx.ui.select('Resume which plan?', options);
   if (!choice || choice === 'Cancel') return;
 
-  const planName = choice.split(' — ')[0];
-  const dir = `.plans/${planName}`;
+  const planName = choice.split(' — ')[0]!;
+  // Ledger-relative: the runtime root is the plans folder itself.
+  const dir = planName;
   const snapshot = await runPlanIO(readTasksJsonl(dir));
 
   if (!snapshot) {
-    ctx.ui.notify(`Could not load ${dir}/tasks.jsonl`, 'error');
+    ctx.ui.notify(`Could not load ${plansPath(planName, 'tasks.jsonl')}`, 'error');
     return;
   }
 
@@ -113,10 +115,9 @@ export async function resumePlan(
 
   if (action === 'Re-plan from scratch') {
     const planTitle = state.plan.title;
-    const planDirPath = state.planDir;
     await enterPlanMode(state, pi, ctx);
     pi.sendUserMessage(
-      `There is an existing plan "${planTitle}" at ${planDirPath}/tasks.jsonl. Review it and create a revised plan using submit_plan. Keep the same plan name ("${planName}").`,
+      `There is an existing plan "${planTitle}" at ${plansPath(planName, 'tasks.jsonl')}. Review it and create a revised plan using submit_plan. Keep the same plan name ("${planName}").`,
     );
     return;
   }

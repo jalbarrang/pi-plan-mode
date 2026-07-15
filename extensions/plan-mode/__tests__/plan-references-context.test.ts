@@ -68,8 +68,8 @@ describe('buildPlanContextPack', () => {
 describe('resolvePlanReference', () => {
   test('resolves a real plan on disk', async () => {
     await runPlanIO(upsertPlanEntry('add-auth', { status: 'in-progress', title: 'Add Auth' }));
-    await runPlanIO(writeTasksJsonl('.plans/add-auth', meta, tasks));
-    await runPlanIO(saveHandoff('.plans/add-auth', 'Handoff body'));
+    await runPlanIO(writeTasksJsonl('add-auth', meta, tasks));
+    await runPlanIO(saveHandoff('add-auth', 'Handoff body'));
 
     const resolved = await runPlanIO(resolvePlanReference('add-auth'));
     expect(resolved).toBeDefined();

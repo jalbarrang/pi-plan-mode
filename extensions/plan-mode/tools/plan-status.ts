@@ -12,6 +12,7 @@ import { Text } from '@earendil-works/pi-tui';
 import { Type } from 'typebox';
 import type { TaskStatus } from '../types.js';
 import type { ResolvedPlan } from '../resolve-plan.js';
+import { PLANS_ROOT } from '../ledger.js';
 
 export interface InProgressSummary {
   name: string;
@@ -55,7 +56,7 @@ export function registerPlanStatusTool(pi: ExtensionAPI, callbacks: PlanStatusCa
       plan: Type.Optional(
         Type.String({
           description:
-            'Plan name (or .plans/<name>) to inspect. Only needed to disambiguate when multiple plans are in-progress.',
+            'Plan name (or <plans-root>/<name>) to inspect. Only needed to disambiguate when multiple plans are in-progress.',
         }),
       ),
     }),
@@ -85,7 +86,7 @@ export function registerPlanStatusTool(pi: ExtensionAPI, callbacks: PlanStatusCa
         const hint =
           candidates.length > 1
             ? ` In-progress plans: ${candidates.join(', ')} — pass { plan: "<name>" }.`
-            : ' No in-progress plan found in .plans/plans.jsonl.';
+            : ` No in-progress plan found in ${PLANS_ROOT}/plans.jsonl.`;
         const noPlanDetails: Record<string, unknown> = { active: false, candidates };
         return {
           content: [{ type: 'text' as const, text: `No active plan.${hint}` }],

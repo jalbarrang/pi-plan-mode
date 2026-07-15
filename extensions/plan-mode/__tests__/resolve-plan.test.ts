@@ -43,8 +43,8 @@ function fakePi() {
 }
 
 async function seedPlan(name: string, status: 'in-progress' | 'done', ids: string[]) {
-  await runPlanIO(writeTasksJsonl(`.plans/${name}`, meta(name), ids.map(task)));
-  await runPlanIO(saveHandoff(`.plans/${name}`, `# Handoff ${name}`));
+  await runPlanIO(writeTasksJsonl(name, meta(name), ids.map(task)));
+  await runPlanIO(saveHandoff(name, `# Handoff ${name}`));
   await runPlanIO(upsertPlanEntry(name, { status, title: `Title ${name}` }));
 }
 
@@ -79,7 +79,7 @@ describe('resolveActivePlan', () => {
     expect(result.plan?.tasks).toHaveLength(2);
     expect(result.plan?.handoff).toBe('# Handoff alpha');
     // Attached into state (data only — execution mode untouched).
-    expect(state.planDir).toBe('.plans/alpha');
+    expect(state.planDir).toBe('alpha');
     expect(state.executing).toBe(false);
   });
 
@@ -102,7 +102,7 @@ describe('resolveActivePlan', () => {
     await seedPlan('beta', 'in-progress', ['t-001']);
     const state = new PlanModeState();
     state.plan = { title: 'alpha', planName: 'alpha', handoff: '', tasks: [task('t-001')] };
-    state.planDir = '.plans/alpha';
+    state.planDir = 'alpha';
     const { pi } = fakePi();
 
     // The explicit hint must re-attach beta, not silently keep alpha.
@@ -110,7 +110,7 @@ describe('resolveActivePlan', () => {
 
     expect(result.plan?.planName).toBe('beta');
     expect(state.plan?.planName).toBe('beta');
-    expect(state.planDir).toBe('.plans/beta');
+    expect(state.planDir).toBe('beta');
   });
 
   test('a hint matching the in-memory plan returns it without touching disk', async () => {
@@ -130,7 +130,7 @@ describe('resolveActivePlan', () => {
     const result = await resolveActivePlan(state, pi, runPlanIO, { name: '.plans/beta' });
 
     expect(result.plan?.planName).toBe('beta');
-    expect(state.planDir).toBe('.plans/beta');
+    expect(state.planDir).toBe('beta');
   });
 
   test('refuses a stale in-memory pin when other plans are in-progress (misfile guard)', async () => {
@@ -140,7 +140,7 @@ describe('resolveActivePlan', () => {
     await seedPlan('gamma', 'in-progress', ['t-001']);
     const state = new PlanModeState();
     state.plan = { title: 'alpha', planName: 'alpha', handoff: '', tasks: [task('t-001')] };
-    state.planDir = '.plans/alpha';
+    state.planDir = 'alpha';
     const { pi } = fakePi();
 
     const result = await resolveActivePlan(state, pi, runPlanIO);
@@ -155,7 +155,7 @@ describe('resolveActivePlan', () => {
     await seedPlan('alpha', 'done', ['t-001']);
     const state = new PlanModeState();
     state.plan = { title: 'alpha', planName: 'alpha', handoff: '', tasks: [task('t-001')] };
-    state.planDir = '.plans/alpha';
+    state.planDir = 'alpha';
     const { pi } = fakePi();
 
     const result = await resolveActivePlan(state, pi, runPlanIO);
@@ -174,7 +174,7 @@ describe('resolveActivePlan', () => {
     expect(result.candidates).toEqual([]);
   });
 
-  test('returns no plan + no candidates when .plans is empty', async () => {
+  test('returns no plan + no candidates when the ledger is empty', async () => {
     const state = new PlanModeState();
     const { pi } = fakePi();
     const result = await resolveActivePlan(state, pi, runPlanIO);

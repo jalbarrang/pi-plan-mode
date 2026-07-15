@@ -59,7 +59,7 @@ afterEach(async () => {
 
 describe('reconcile_plans tool', () => {
   test('reports drift read-only without changing the registry', async () => {
-    await runPlanIO(writeTasksJsonl('.plans/alpha', meta('alpha'), [doneTask('t-001')]));
+    await runPlanIO(writeTasksJsonl('alpha', meta('alpha'), [doneTask('t-001')]));
     await runPlanIO(upsertPlanEntry('alpha', { status: 'in-progress', title: 'Title alpha' }));
 
     const tool = setup();
@@ -71,7 +71,7 @@ describe('reconcile_plans tool', () => {
   });
 
   test('apply:true repairs status drift', async () => {
-    await runPlanIO(writeTasksJsonl('.plans/alpha', meta('alpha'), [doneTask('t-001')]));
+    await runPlanIO(writeTasksJsonl('alpha', meta('alpha'), [doneTask('t-001')]));
     await runPlanIO(upsertPlanEntry('alpha', { status: 'in-progress', title: 'Title alpha' }));
 
     const tool = setup();

@@ -13,13 +13,13 @@ Use this throughout any planning session, from the first real decision onward. I
 
 ## What it is
 
-`.plans/<plan-name>/context.md` — a deliberation document, not a plan. It captures the *why* and the *roads not taken*, which `HANDOFF.md` and the task list deliberately omit.
+`<plans-root>/<plan-name>/context.md` — a deliberation document, not a plan. It captures the *why* and the *roads not taken*, which `HANDOFF.md` and the task list deliberately omit. The plans root defaults to `.taskman/plans/` and is overridable via a `.taskmanrc` (`{"plans-root": "<dir>"}`) in the working directory.
 
 ## Process
 
 ### 1. Create it early
 
-As soon as you understand the intent, write `.plans/<plan-name>/context.md` with the `write` tool. Do not wait until you are ready to submit.
+As soon as you understand the intent, write `<plans-root>/<plan-name>/context.md` with the `write` tool. Do not wait until you are ready to submit.
 
 ### 2. Keep these sections current
 

@@ -3,7 +3,7 @@
  *
  * `state.plan` is session-scoped: it is only populated when a plan is submitted
  * in *this* session, restored from this session's entries, or handed off via
- * the one-shot exec-pending file. But `.plans/<name>/tasks.jsonl` is the real
+ * the one-shot exec-pending file. But `<plans-root>/<name>/tasks.jsonl` is the real
  * source of truth, and execution routinely happens in a different session than
  * planning. This bridges that gap: when nothing is attached in memory, resolve
  * the plan from disk so `update_task` / `add_task` work without an interactive
@@ -21,6 +21,7 @@ import type { RunPlanIO } from '@dreki-gg/taskman';
 import { readPlansManifest } from '@dreki-gg/taskman';
 import { readTasksJsonl } from '@dreki-gg/taskman';
 import { loadHandoff } from '@dreki-gg/taskman';
+import { normalizePlanName } from '@dreki-gg/taskman';
 
 export interface ResolvedPlan {
   /** The attached plan, when resolvable. Already written into `state`. */
@@ -33,23 +34,16 @@ export interface ResolvedPlan {
   candidates: string[];
 }
 
-/** Normalize a plan hint (`my-plan` or `.plans/my-plan`) to a bare name. */
-function normalizeName(hint: string): string {
-  return hint
-    .replace(/^\.plans\//, '')
-    .replace(/\/+$/, '')
-    .trim();
-}
-
-/** Load `.plans/<name>` from disk into `state` (data only). Returns the plan,
- *  or undefined when the tasks file is missing/empty. */
+/** Load `<plans-root>/<name>` from disk into `state` (data only). Returns the
+ *  plan, or undefined when the tasks file is missing/empty. */
 async function attach(
   state: PlanModeState,
   pi: ExtensionAPI,
   runPlanIO: RunPlanIO,
   name: string,
 ): Promise<PlanData | undefined> {
-  const dir = `.plans/${name}`;
+  // Ledger-relative: the runtime root is the plans folder itself.
+  const dir = name;
   const snapshot = await runPlanIO(readTasksJsonl(dir));
   if (!snapshot) return undefined;
   const plan: PlanData = {
@@ -69,7 +63,7 @@ async function attach(
  * Resolve the active plan, attaching from disk when nothing is in memory.
  *
  * Order: explicit `name` hint → in-memory `state.plan` → the single
- * in-progress plan in `.plans/plans.jsonl`. Ambiguous (multiple in-progress,
+ * in-progress plan in the ledger's `plans.jsonl`. Ambiguous (multiple in-progress,
  * no hint) returns `{ plan: undefined, candidates }` so the caller can prompt
  * for a `name`.
  *
@@ -88,7 +82,7 @@ export async function resolveActivePlan(
 ): Promise<ResolvedPlan> {
   // ── Explicit hint wins, even over an attached in-memory plan ──────────────
   if (opts.name) {
-    const hint = normalizeName(opts.name);
+    const hint = normalizePlanName(opts.name);
     // Already the attached plan? Return the in-memory copy (freshest task state).
     if (state.plan && state.plan.planName === hint) return { plan: state.plan, candidates: [] };
 

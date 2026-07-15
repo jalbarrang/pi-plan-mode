@@ -16,6 +16,7 @@ import { makePlanRuntime } from '@dreki-gg/taskman';
 import { toKebabCase } from '@dreki-gg/taskman';
 import { readHeadCommit } from '../git.js';
 import { resolvePlanTarget, assertTargetReceived } from '../target.js';
+import { plansPath, resolveTargetLedger } from '../ledger.js';
 import { detectPreconditionGaps, formatPreconditionRejection } from '../precondition-guard.js';
 import type { PlanData, TaskMeta, TaskRecord } from '../types.js';
 
@@ -81,7 +82,7 @@ export function registerSubmitPlanTool(
       target: Type.Optional(
         Type.String({
           description:
-            "Optional path to ANOTHER project's repo root (not its .plans/ dir). When set, the plan is filed into that project's .plans/ registry instead of the current one — useful when you find a gap in a package you author and want the plan to live (and later execute) there. Author-only: the plan is NOT pinned as the active plan in this session.",
+            "Optional path to ANOTHER project's repo root (not its plan-ledger dir). When set, the plan is filed into that project's plan ledger instead of the current one (honouring that repo's .taskmanrc) — useful when you find a gap in a package you author and want the plan to live (and later execute) there. Author-only: the plan is NOT pinned as the active plan in this session.",
         }),
       ),
     }),
@@ -100,14 +101,16 @@ export function registerSubmitPlanTool(
       }
 
       // Resolve an optional external target. When set, the plan is filed into
-      // that repo's .plans/ registry via a target-scoped runtime, its base
-      // commit comes from that repo's HEAD, and we do NOT pin it as this
-      // session's active plan (author-only).
+      // that repo's plan ledger (honouring its own .taskmanrc) via a
+      // target-scoped runtime, its base commit comes from that repo's HEAD, and
+      // we do NOT pin it as this session's active plan (author-only).
       const targetDir = await resolvePlanTarget(params.target);
-      const io: RunPlanIO = targetDir ? makePlanRuntime(targetDir) : runPlanIO;
+      const targetLedger = targetDir ? resolveTargetLedger(targetDir) : undefined;
+      const io: RunPlanIO = targetLedger ? makePlanRuntime(targetLedger) : runPlanIO;
 
       const planName = toKebabCase(params.name);
-      const planDir = `.plans/${planName}`;
+      // Ledger-relative: the runtime root is the plans folder itself.
+      const planDir = planName;
       const initiative = params.initiative ? toKebabCase(params.initiative) : undefined;
       const dependsOnPlans = params.depends_on_plans?.map(toKebabCase);
       const now = new Date().toISOString();
@@ -156,7 +159,7 @@ export function registerSubmitPlanTool(
       );
 
       // Fail loudly if an old/stale taskman silently routed the write to cwd.
-      if (targetDir) await assertTargetReceived(targetDir, planDir);
+      if (targetLedger) await assertTargetReceived(targetLedger, planDir);
 
       // Author-only: only pin as the active plan when filed in the current
       // project. A plan filed into an external repo is a first-class local plan
@@ -168,10 +171,10 @@ export function registerSubmitPlanTool(
             unknownInitiative ? ' (no initiatives.jsonl entry yet — create it with submit_initiative)' : ''
           }.`
         : '';
-      const location = targetDir ? `${targetDir}/${planDir}` : planDir;
+      const location = targetLedger ? `${targetLedger}/${planDir}` : plansPath(planDir);
       const text = targetDir
         ? `Plan "${params.title}" filed into ${location} with ${tasks.length} tasks. It is a local plan in that project — execute it from that directory.${linkSuffix}`
-        : `Plan "${params.title}" saved with ${tasks.length} tasks in ${planDir}. Execute when ready.${linkSuffix}`;
+        : `Plan "${params.title}" saved with ${tasks.length} tasks in ${location}. Execute when ready.${linkSuffix}`;
       return {
         content: [{ type: 'text' as const, text }],
         details: { planDir, plan, initiative, depends_on_plans: dependsOnPlans, target: targetDir },

@@ -23,12 +23,17 @@ describe('nextTaskId', () => {
 describe('isSafeCommand', () => {
   // ── Commands that SHOULD be allowed ──────────────────────────────────────
   describe('allowed commands', () => {
-    test('mkdir -p .plans/<name>', () => {
-      expect(isSafeCommand('mkdir -p .plans/monorepo-src-migration')).toBe(true);
+    test('mkdir -p <plans-root>/<name> (default root)', () => {
+      expect(isSafeCommand('mkdir -p .taskman/plans/monorepo-src-migration')).toBe(true);
     });
 
-    test('mkdir .plans/<name>', () => {
-      expect(isSafeCommand('mkdir .plans/my-plan')).toBe(true);
+    test('mkdir <plans-root>/<name> (default root)', () => {
+      expect(isSafeCommand('mkdir .taskman/plans/my-plan')).toBe(true);
+    });
+
+    test('mkdir honours a custom plans root', () => {
+      expect(isSafeCommand('mkdir -p .plans/my-plan', '.plans')).toBe(true);
+      expect(isSafeCommand('mkdir -p .taskman/plans/my-plan', '.plans')).toBe(false);
     });
 
     test('command with 2>/dev/null stderr redirect', () => {
@@ -98,8 +103,12 @@ describe('isSafeCommand', () => {
       expect(isSafeCommand('rm -rf node_modules')).toBe(false);
     });
 
-    test('mkdir outside .plans/', () => {
+    test('mkdir outside the plans root', () => {
       expect(isSafeCommand('mkdir -p src/new-dir')).toBe(false);
+    });
+
+    test('mkdir for the old default .plans/ is blocked under the new root', () => {
+      expect(isSafeCommand('mkdir -p .plans/my-plan')).toBe(false);
     });
 
     test('stdout redirect to file', () => {
@@ -156,20 +165,25 @@ describe('isSafeCommand', () => {
 });
 
 describe('isPlanPath', () => {
-  test('relative .plans/ path', () => {
-    expect(isPlanPath('.plans/my-plan/context.md')).toBe(true);
+  test('relative plans-root path (default root)', () => {
+    expect(isPlanPath('.taskman/plans/my-plan/context.md')).toBe(true);
   });
 
-  test('absolute path containing .plans/', () => {
-    expect(isPlanPath('/Users/me/project/.plans/my-plan/context.md')).toBe(true);
+  test('absolute path containing the plans root', () => {
+    expect(isPlanPath('/Users/me/project/.taskman/plans/my-plan/context.md')).toBe(true);
   });
 
-  test('just .plans/', () => {
-    expect(isPlanPath('.plans/foo')).toBe(true);
+  test('just the plans root', () => {
+    expect(isPlanPath('.taskman/plans/foo')).toBe(true);
   });
 
   test('windows-style backslashes', () => {
-    expect(isPlanPath('.plans\\my-plan\\context.md')).toBe(true);
+    expect(isPlanPath('.taskman\\plans\\my-plan\\context.md')).toBe(true);
+  });
+
+  test('honours a custom plans root', () => {
+    expect(isPlanPath('.plans/my-plan/context.md', '.plans')).toBe(true);
+    expect(isPlanPath('.taskman/plans/my-plan/context.md', '.plans')).toBe(false);
   });
 
   test('src/ path is blocked', () => {
@@ -184,11 +198,15 @@ describe('isPlanPath', () => {
     expect(isPlanPath('package.json')).toBe(false);
   });
 
-  test('path with plans but not .plans is blocked', () => {
+  test('path with plans but not the plans root is blocked', () => {
     expect(isPlanPath('src/plans/something.ts')).toBe(false);
   });
 
-  test('path ending in .plans without slash is blocked', () => {
-    expect(isPlanPath('.plans')).toBe(false);
+  test('old default .plans/ is blocked under the new root', () => {
+    expect(isPlanPath('.plans/my-plan/context.md')).toBe(false);
+  });
+
+  test('path ending in the plans root without slash is blocked', () => {
+    expect(isPlanPath('.taskman/plans')).toBe(false);
   });
 });

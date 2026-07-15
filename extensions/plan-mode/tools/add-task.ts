@@ -20,6 +20,7 @@ import {
   loadPlanData,
 } from '@dreki-gg/taskman';
 import { resolvePlanTarget, assertTargetTaskAppended } from '../target.js';
+import { PLANS_ROOT, resolveTargetLedger } from '../ledger.js';
 
 export interface AddTaskCallbacks {
   /** Resolve the active plan, attaching from disk when none is in memory. */
@@ -51,12 +52,12 @@ export function registerAddTaskTool(pi: ExtensionAPI, callbacks: AddTaskCallback
       depends_on: Type.Optional(Type.Array(Type.String({ description: 'Dependency task ID' }))),
       plan: Type.String({
         description:
-          'Plan name (or .plans/<name>) to target. Required — always scope the capture explicitly so it never lands in the wrong plan.',
+          'Plan name (or <plans-root>/<name>) to target. Required — always scope the capture explicitly so it never lands in the wrong plan.',
       }),
       target: Type.Optional(
         Type.String({
           description:
-            "Optional path to ANOTHER project's repo root whose .plans/ holds the plan. Use when capturing a follow-up against a plan you filed into a package you author. The plan must already exist there.",
+            "Optional path to ANOTHER project's repo root whose plan ledger holds the plan. Use when capturing a follow-up against a plan you filed into a package you author. The plan must already exist there.",
         }),
       ),
     }),
@@ -72,16 +73,18 @@ export function registerAddTaskTool(pi: ExtensionAPI, callbacks: AddTaskCallback
           'add_task requires an explicit { plan } — pass the plan name so the follow-up is never misfiled onto an unrelated in-progress plan.',
         );
       }
-      // External target: resolve + append against that repo's .plans/ via a
-      // target-scoped runtime, bypassing the cwd-bound session callbacks.
+      // External target: resolve + append against that repo's plan ledger
+      // (honouring its own .taskmanrc) via a target-scoped runtime, bypassing
+      // the cwd-bound session callbacks.
       const targetDir = await resolvePlanTarget(params.target);
       if (targetDir) {
-        const io = makePlanRuntime(targetDir);
+        const targetLedger = resolveTargetLedger(targetDir);
+        const io = makePlanRuntime(targetLedger);
         const resolved = await io(resolvePlanByName({ name: params.plan }));
         if (!resolved.planName || !resolved.planDir) {
           const hint = resolved.candidates.length
             ? ` In-progress in ${targetDir}: ${resolved.candidates.join(', ')}.`
-            : ` No such plan in ${targetDir}/.plans/.`;
+            : ` No such plan in ${targetLedger}/.`;
           return {
             content: [
               { type: 'text' as const, text: `Skipped follow-up capture — plan not found.${hint}` },
@@ -103,12 +106,12 @@ export function registerAddTaskTool(pi: ExtensionAPI, callbacks: AddTaskCallback
           }),
         );
         // Fail loudly if an old/stale taskman silently appended to cwd instead.
-        await assertTargetTaskAppended(targetDir, resolved.planDir!, task.id);
+        await assertTargetTaskAppended(targetLedger, resolved.planDir!, task.id);
         return {
           content: [
             {
               type: 'text' as const,
-              text: `Captured follow-up ${task.id}: ${task.description} into ${targetDir}/${resolved.planDir} (deferred for review). ${deferred} follow-up(s) pending there. Continue with the planned tasks — do not implement this now.`,
+              text: `Captured follow-up ${task.id}: ${task.description} into ${targetLedger}/${resolved.planDir} (deferred for review). ${deferred} follow-up(s) pending there. Continue with the planned tasks — do not implement this now.`,
             },
           ],
           details: {
@@ -127,7 +130,7 @@ export function registerAddTaskTool(pi: ExtensionAPI, callbacks: AddTaskCallback
         const hint =
           candidates.length > 1
             ? ` Multiple in-progress plans (${candidates.join(', ')}) — pass { plan: "<name>" } to choose.`
-            : ' No in-progress plan found in .plans/plans.jsonl.';
+            : ` No in-progress plan found in ${PLANS_ROOT}/plans.jsonl.`;
         const details: Record<string, unknown> = { skipped: true, candidates };
         return {
           content: [

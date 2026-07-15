@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import { chdir } from 'node:process';
-import { mkdtemp, rm, readFile } from 'node:fs/promises';
+import { mkdtemp, rm, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { makePlanRuntime, writeTasksJsonl, upsertPlanEntry } from '@dreki-gg/taskman';
+import { DEFAULT_PLANS_ROOT, makePlanRuntime, writeTasksJsonl, upsertPlanEntry } from '@dreki-gg/taskman';
 import type { TaskMeta, TaskRecord } from '@dreki-gg/taskman';
 import { registerRevisePlanTool } from '../tools/revise-plan.js';
 import { registerAddTaskTool } from '../tools/add-task.js';
@@ -23,9 +23,9 @@ function captureTool(register: (pi: unknown) => void): CapturedTool {
   return tool!;
 }
 
-/** Seed an in-progress plan with one done task into a target repo's .plans/. */
-async function seedPlan(targetDir: string): Promise<void> {
-  const io = makePlanRuntime(targetDir);
+/** Seed an in-progress plan with one done task into a target repo's ledger. */
+async function seedPlan(targetDir: string, plansRoot: string = DEFAULT_PLANS_ROOT): Promise<void> {
+  const io = makePlanRuntime(join(targetDir, plansRoot));
   const meta: TaskMeta = { _type: 'meta', title: 'Gap', plan_name: 'gap', created_at: now };
   const task: TaskRecord = {
     _type: 'task',
@@ -37,7 +37,7 @@ async function seedPlan(targetDir: string): Promise<void> {
     created_at: now,
     updated_at: now,
   };
-  await io(writeTasksJsonl('.plans/gap', meta, [task]));
+  await io(writeTasksJsonl('gap', meta, [task]));
   await io(upsertPlanEntry('gap', { status: 'in-progress', title: 'Gap' }));
 }
 
@@ -75,7 +75,7 @@ describe('revise_plan — external target', () => {
       target: targetDir,
     });
 
-    const manifest = await readFile(join(targetDir, '.plans', 'plans.jsonl'), 'utf-8');
+    const manifest = await readFile(join(targetDir, DEFAULT_PLANS_ROOT, 'plans.jsonl'), 'utf-8');
     expect(manifest).toContain('Gap (revised)');
     expect(res.content?.[0]?.text).toMatch(/revised/);
     expect((res.details as { target?: string }).target).toBe(targetDir);
@@ -105,11 +105,39 @@ describe('add_task — external target', () => {
       target: targetDir,
     });
 
-    const tasks = await readFile(join(targetDir, '.plans', 'gap', 'tasks.jsonl'), 'utf-8');
+    const tasks = await readFile(join(targetDir, DEFAULT_PLANS_ROOT, 'gap', 'tasks.jsonl'), 'utf-8');
     expect(tasks).toContain('Fix the gap edge case');
     expect(tasks).toContain('deferred');
     expect(res.content?.[0]?.text).toMatch(/Captured follow-up t-002/);
     expect(sessionCalled).toBe(false);
+  });
+
+  test("honours the target repo's .taskmanrc plans-root", async () => {
+    const rcTarget = await mkdtemp(join(tmpdir(), 'plan-mode-ext-rc-'));
+    try {
+      await writeFile(join(rcTarget, '.taskmanrc'), '{"plans-root": ".plans"}\n');
+      await seedPlan(rcTarget, '.plans');
+
+      const tool = captureTool((pi) =>
+        registerAddTaskTool(pi as never, {
+          resolvePlan: async () => ({ plan: undefined, candidates: [] }),
+          onTaskAdded: () => {},
+        }),
+      );
+
+      const res = await tool.execute('c', {
+        description: 'Follow the rc',
+        reason: 'ledger root comes from .taskmanrc',
+        plan: 'gap',
+        target: rcTarget,
+      });
+
+      const tasks = await readFile(join(rcTarget, '.plans', 'gap', 'tasks.jsonl'), 'utf-8');
+      expect(tasks).toContain('Follow the rc');
+      expect(res.content?.[0]?.text).toMatch(/Captured follow-up/);
+    } finally {
+      await rm(rcTarget, { recursive: true, force: true });
+    }
   });
 
   test('soft-skips when the plan does not exist in the target', async () => {

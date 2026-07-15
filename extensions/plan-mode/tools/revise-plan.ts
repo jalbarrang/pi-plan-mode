@@ -30,6 +30,7 @@ import { makePlanRuntime, resolvePlanByName, loadPlanData } from '@dreki-gg/task
 import type { RunPlanIO } from '@dreki-gg/taskman';
 import { Effect as E } from 'effect';
 import { resolvePlanTarget, assertTargetReceived } from '../target.js';
+import { plansPath, resolveTargetLedger } from '../ledger.js';
 import type { PlanData, TaskMeta, TaskRecord } from '../types.js';
 
 export interface RevisePlanCallbacks {
@@ -55,11 +56,11 @@ export function registerRevisePlanTool(
       'Pass initiative / depends_on_plans to (re)link this plan to an initiative or change its plan-level dependencies; omit them to preserve the existing links.',
     ],
     parameters: Type.Object({
-      plan: Type.String({ description: 'Plan name (or .plans/<name>) to revise' }),
+      plan: Type.String({ description: 'Plan name (or <plans-root>/<name>) to revise' }),
       target: Type.Optional(
         Type.String({
           description:
-            "Optional path to ANOTHER project's repo root whose .plans/ holds the plan being revised. Use when the plan was filed into a package you author. Author-only: the revised plan is NOT pinned as this session's active plan.",
+            "Optional path to ANOTHER project's repo root whose plan ledger holds the plan being revised. Use when the plan was filed into a package you author. Author-only: the revised plan is NOT pinned as this session's active plan.",
         }),
       ),
       title: Type.Optional(Type.String({ description: 'New human-readable plan title' })),
@@ -102,10 +103,12 @@ export function registerRevisePlanTool(
         );
       }
       // Resolve an optional external target. When set, resolve + rewrite the
-      // plan against that repo's .plans/ via a target-scoped runtime, and do
-      // not touch this session's active-plan state (author-only).
+      // plan against that repo's plan ledger (honouring its own .taskmanrc)
+      // via a target-scoped runtime, and do not touch this session's
+      // active-plan state (author-only).
       const targetDir = await resolvePlanTarget(params.target);
-      const io: RunPlanIO = targetDir ? makePlanRuntime(targetDir) : runPlanIO;
+      const targetLedger = targetDir ? resolveTargetLedger(targetDir) : undefined;
+      const io: RunPlanIO = targetLedger ? makePlanRuntime(targetLedger) : runPlanIO;
 
       const { plan, candidates } = targetDir
         ? await io(
@@ -172,7 +175,8 @@ export function registerRevisePlanTool(
         tasks,
         base_commit: plan.base_commit,
       };
-      const planDir = `.plans/${plan.planName}`;
+      // Ledger-relative: the runtime root is the plans folder itself.
+      const planDir = plan.planName;
 
       const newInitiative = params.initiative ? toKebabCase(params.initiative) : undefined;
       const newDependsOn = params.depends_on_plans?.map(toKebabCase);
@@ -202,7 +206,7 @@ export function registerRevisePlanTool(
       );
 
       // Fail loudly if an old/stale taskman silently routed the write to cwd.
-      if (targetDir) await assertTargetReceived(targetDir, planDir);
+      if (targetLedger) await assertTargetReceived(targetLedger, planDir);
 
       // Author-only: only re-pin the active plan when revising in the current
       // project (an external plan stays a local plan in its own repo).
@@ -213,7 +217,7 @@ export function registerRevisePlanTool(
         params.handoff ? 'handoff' : undefined,
         params.tasks ? 'tasks' : undefined,
       ].filter(Boolean);
-      const location = targetDir ? `${targetDir}/${planDir}` : planDir;
+      const location = targetLedger ? `${targetLedger}/${planDir}` : plansPath(planDir);
       return {
         content: [
           {

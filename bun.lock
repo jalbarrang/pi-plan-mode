@@ -6,7 +6,7 @@
       "name": "@dreki-gg/pi-plan-mode",
       "dependencies": {
         "@dreki-gg/pi-command-sandbox": "^0.3.0",
-        "@dreki-gg/taskman": "^0.4.0",
+        "@dreki-gg/taskman": "^0.7.1",
         "effect": "^3.21.2",
       },
       "devDependencies": {
@@ -83,7 +83,7 @@
 
     "@dreki-gg/pi-command-sandbox": ["@dreki-gg/pi-command-sandbox@0.3.2", "", { "dependencies": { "shell-quote": "^1.8.3" } }, "sha512-iHseNGE/khZ4MKO8UzpdDEUA6wmV4TxXwEMFD2lngo05LYQzCxPnznwNj+akq1cpfabIlRWJ/QFRs32tNMkJ+w=="],
 
-    "@dreki-gg/taskman": ["@dreki-gg/taskman@0.4.0", "", { "dependencies": { "commander": "^15.0.0", "effect": "^3.21.2" }, "bin": { "taskman": "dist/cli.mjs" } }, "sha512-Cb493lwkhzUl4w/jKswxganXXo89ewsEQhnfUCyZxibJTeptngsXEtmuXyYLfBrlDdXC7K/hwAt/0SozC01xxA=="],
+    "@dreki-gg/taskman": ["@dreki-gg/taskman@0.7.1", "", { "dependencies": { "commander": "^15.0.0", "effect": "^3.21.4" }, "bin": { "taskman": "dist/cli.mjs" } }, "sha512-pNPp0THwSFHRDnngAjM5AiOOZW/xb3+JjfMZ8sWFrSAJsnQ0tNs/QJF7aSuCgwbnT2fI+e/okmtdllss6RSDsQ=="],
 
     "@earendil-works/pi-agent-core": ["@earendil-works/pi-agent-core@0.75.5", "", { "dependencies": { "@earendil-works/pi-ai": "^0.75.5", "ignore": "7.0.5", "typebox": "1.1.38", "yaml": "2.9.0" } }, "sha512-LHygOgsW2pgXKb3IkXkOAeZPovHr9VF+EixgXVsDNuB4jmhEOXgshy/zksZ7slkUAx10OQ9W1Ed/2jsnhd1NqA=="],
 

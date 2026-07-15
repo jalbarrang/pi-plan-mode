@@ -1,13 +1,16 @@
 #!/usr/bin/env node
 /**
- * CLI to clean closed plans (and initiatives) from `.plans/`.
+ * CLI to clean closed plans (and initiatives) from the plan ledger.
  *
  * Usage:
  *   npx @dreki-gg/pi-plan-mode clean [--dry-run] [--purge]
  *
- * Reads `.plans/plans.jsonl` and `.plans/initiatives.jsonl`, and for every
- * entry whose status is terminal (done / superseded / abandoned):
- *   - default:  ARCHIVES the directory to `.plans/.archive/<name>/`
+ * The ledger root honours `.taskmanrc` (`{"plans-root": "<dir>"}`) in the
+ * working directory and defaults to `.taskman/plans`, matching the taskman CLI
+ * and the plan-mode extension. Reads the ledger's `plans.jsonl` and
+ * `initiatives.jsonl`, and for every entry whose status is terminal
+ * (done / superseded / abandoned):
+ *   - default:  ARCHIVES the directory to `<plans-root>/.archive/<name>/`
  *               (non-destructive — keeps HANDOFF.md / INITIATIVE.md as a record)
  *   - --purge:  permanently deletes the directory
  * In both cases the entry is removed from its active registry.
@@ -19,8 +22,9 @@
 
 import { readFileSync, writeFileSync, rmSync, renameSync, mkdirSync, existsSync } from 'node:fs';
 import { resolve, join } from 'node:path';
+import { resolveLedgerRoot } from '@dreki-gg/taskman';
 
-const PLANS_DIR = '.plans';
+const PLANS_DIR = resolveLedgerRoot().root;
 const ARCHIVE_DIR = join(PLANS_DIR, '.archive');
 const PLANS_MANIFEST = join(PLANS_DIR, 'plans.jsonl');
 const INITIATIVES_MANIFEST = join(PLANS_DIR, 'initiatives.jsonl');
@@ -137,7 +141,7 @@ function main() {
     console.error('  clean       Archive closed plan + initiative directories and update registries\n');
     console.error('Options:');
     console.error('  --dry-run   Show what would be cleaned without changing anything');
-    console.error('  --purge     Permanently delete instead of archiving to .plans/.archive/');
+    console.error(`  --purge     Permanently delete instead of archiving to ${ARCHIVE_DIR}/`);
     process.exit(1);
   }
 

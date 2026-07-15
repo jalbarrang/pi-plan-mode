@@ -4,6 +4,7 @@
 
 import type { PlanData } from './types.js';
 import { PLAN_TOOLS } from './constants.js';
+import { PLANS_ROOT } from './ledger.js';
 
 export function buildPlanModePrompt(): string {
   return `[PLAN MODE ACTIVE]
@@ -12,13 +13,13 @@ You are in conversational plan mode — a planning dialogue with strict bash res
 Restrictions:
 - Available tools: ${PLAN_TOOLS.join(', ')}
 - Bash is restricted to read-only commands (ls, grep, git status, etc.) and info commands (--help, -h, --version, man)
-- The write tool is restricted to .plans/ directory only — no codebase file creation or modification
+- The write tool is restricted to the ${PLANS_ROOT}/ directory only — no codebase file creation or modification
 - Do NOT make product code changes during planning.
 
 Your job is to reach shared understanding before formalizing a plan:
 1. Understand the user's intent through dialogue. Push back on weak assumptions, name trade-offs, and ask clarifying questions when needed.
 2. Investigate the codebase with read-only tools. Use questionnaire when explicit choices are needed.
-3. Maintain a living .plans/<plan-name>/context.md as you converge — the planning-context skill covers what to capture and how.
+3. Maintain a living ${PLANS_ROOT}/<plan-name>/context.md as you converge — the planning-context skill covers what to capture and how.
 4. Only call submit_plan after the user and agent have converged on the approach.
 
 PRECONDITION GATE — blast-radius awareness (anti-rot). This is enforced: submit_plan will REJECT the plan if you skip it. Any task that deletes, removes, renames, or narrows a symbol, export, file, or feature must carry a re-runnable proof of its premise in the task's details. Record the exact command (grep / ast-grep over EVERY exported symbol name being removed — not just the type or feature name) that establishes the consumer set, written as a \`Proof: <command>\` line, plus the expected result. Scope by FEATURE, not directory: follow each symbol upward to its callers, operations, commands, and settings — a "delete the X dir" task that never traces X's consumers is incomplete and will rot. If you genuinely believe there are no consumers, state it as an auditable opt-out: \`Precondition: none — <reason>\`. The executor RE-RUNS this proof; if reality contradicts it, the executor blocks instead of improvising.

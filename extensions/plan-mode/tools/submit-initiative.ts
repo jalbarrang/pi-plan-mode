@@ -16,6 +16,7 @@ import { saveInitiative } from '@dreki-gg/taskman';
 import { upsertInitiativeEntry } from '@dreki-gg/taskman';
 import type { RunPlanIO } from '@dreki-gg/taskman';
 import { toKebabCase } from '@dreki-gg/taskman';
+import { plansPath } from '../ledger.js';
 
 export function registerSubmitInitiativeTool(pi: ExtensionAPI, runPlanIO: RunPlanIO): void {
   pi.registerTool({
@@ -42,7 +43,8 @@ export function registerSubmitInitiativeTool(pi: ExtensionAPI, runPlanIO: RunPla
 
     async execute(_toolCallId, params) {
       const name = toKebabCase(params.name);
-      const initiativeDir = `.plans/${name}`;
+      // Ledger-relative: the runtime root is the plans folder itself.
+      const initiativeDir = name;
 
       await runPlanIO(
         Effect.gen(function* () {
@@ -55,7 +57,7 @@ export function registerSubmitInitiativeTool(pi: ExtensionAPI, runPlanIO: RunPla
         content: [
           {
             type: 'text' as const,
-            text: `Initiative "${params.title}" created in ${initiativeDir}. Submit member plans with initiative: "${name}".`,
+            text: `Initiative "${params.title}" created in ${plansPath(name)}. Submit member plans with initiative: "${name}".`,
           },
         ],
         details: { initiativeDir, name, title: params.title },

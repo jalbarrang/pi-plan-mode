@@ -13,8 +13,6 @@ import {
 } from '@dreki-gg/taskman';
 import { EXEC_PENDING_FILE } from './constants.js';
 
-const PLANS_DIR = '.plans';
-
 export function writeExecPending(
   dir: string,
   config: ExecPendingConfig,
@@ -33,11 +31,12 @@ export function readAndClearExecPending(): Effect.Effect<
 > {
   return Effect.gen(function* () {
     const fs = yield* FileSystem;
-    const maybeDirs = yield* Effect.option(fs.listDirectories(PLANS_DIR));
+    // Paths are ledger-relative: the runtime root IS the plans folder.
+    const maybeDirs = yield* Effect.option(fs.listDirectories('.'));
     if (Option.isNone(maybeDirs)) return undefined;
 
     for (const name of maybeDirs.value) {
-      const dir = `${PLANS_DIR}/${name}`;
+      const dir = name;
       const markerPath = `${dir}/${EXEC_PENDING_FILE}`;
       const maybeText = yield* Effect.option(fs.readFileString(markerPath));
       if (Option.isNone(maybeText)) continue;

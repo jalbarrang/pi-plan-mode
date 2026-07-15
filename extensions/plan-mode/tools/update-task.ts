@@ -8,6 +8,7 @@ import { Text } from '@earendil-works/pi-tui';
 import { Type } from 'typebox';
 import type { TaskStatus } from '../types.js';
 import type { ResolvedPlan } from '../resolve-plan.js';
+import { PLANS_ROOT } from '../ledger.js';
 
 export interface UpdateTaskCallbacks {
   /** Resolve the active plan, attaching from disk when none is in memory. */
@@ -45,7 +46,7 @@ export function registerUpdateTaskTool(pi: ExtensionAPI, callbacks: UpdateTaskCa
       ),
       plan: Type.String({
         description:
-          'Plan name (or .plans/<name>) to target. Required — always scope the write explicitly so it never lands in the wrong plan.',
+          'Plan name (or <plans-root>/<name>) to target. Required — always scope the write explicitly so it never lands in the wrong plan.',
       }),
     }),
 
@@ -66,7 +67,7 @@ export function registerUpdateTaskTool(pi: ExtensionAPI, callbacks: UpdateTaskCa
         const hint =
           candidates.length > 1
             ? ` Multiple in-progress plans (${candidates.join(', ')}) — pass { plan: "<name>" } to choose.`
-            : ' No in-progress plan found in .plans/plans.jsonl.';
+            : ` No in-progress plan found in ${PLANS_ROOT}/plans.jsonl.`;
         return soft(`Skipped task tracking — no active plan.${hint}`, {
           skipped: true,
           candidates,

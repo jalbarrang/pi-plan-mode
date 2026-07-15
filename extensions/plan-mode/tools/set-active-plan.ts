@@ -32,7 +32,7 @@ export function registerSetActivePlanTool(
       'It is the tool form of the /plan focus command — it attaches the named plan into session state.',
     ],
     parameters: Type.Object({
-      plan: Type.String({ description: 'Plan name (or .plans/<name>) to pin as active' }),
+      plan: Type.String({ description: 'Plan name (or <plans-root>/<name>) to pin as active' }),
     }),
 
     async execute(_toolCallId, params) {

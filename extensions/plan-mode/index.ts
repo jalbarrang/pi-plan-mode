@@ -52,6 +52,7 @@ import { registerUpdateInitiativeTool } from './tools/update-initiative.js';
 import { registerInitiativeStatusTool } from './tools/initiative-status.js';
 import { registerReconcilePlansTool } from './tools/reconcile-plans.js';
 import { isSafeCommand, isPlanPath } from './utils.js';
+import { PLANS_ROOT } from './ledger.js';
 import { handleListPlans } from './commands/list-plans.js';
 import { handleListInitiatives } from './commands/list-initiatives.js';
 import { createPlanReferenceIndex } from './references/plan-index.js';
@@ -60,8 +61,9 @@ import { registerPlanReferenceContext } from './references/context.js';
 
 export default function planMode(pi: ExtensionAPI): void {
   const state = new PlanModeState();
-  // Build the live Effect runtime once; all storage I/O runs through this bridge.
-  const runPlanIO = makePlanRuntime();
+  // Build the live Effect runtime once; all storage I/O runs through this
+  // bridge. The root honours `.taskmanrc` (default `.taskman/plans`).
+  const runPlanIO = makePlanRuntime(PLANS_ROOT);
   // Cached plan list for `@plan:<slug>` autocomplete; refreshed at session start.
   const planReferenceIndex = createPlanReferenceIndex(runPlanIO);
 
@@ -353,13 +355,13 @@ export default function planMode(pi: ExtensionAPI): void {
       }
     }
 
-    // Restrict write to .plans/ directory only
+    // Restrict write to the plans root directory only
     if (event.toolName === 'write' || event.toolName === 'edit') {
       const path = event.input.path as string;
       if (!isPlanPath(path)) {
         return {
           block: true,
-          reason: `Plan mode: writes are restricted to .plans/ directory only.\nPath: ${path}`,
+          reason: `Plan mode: writes are restricted to the ${PLANS_ROOT}/ directory only.\nPath: ${path}`,
         };
       }
     }
