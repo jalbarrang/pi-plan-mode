@@ -13,13 +13,62 @@ function escapeRegExp(literal: string): string {
 }
 
 /**
+ * Tool-specific verbs that `@hypabolic/pi-hypa` rewrites in place (output
+ * reduction only — the command semantics are unchanged), emitted as
+ * `hypa <verb> <args...>`.
+ */
+const HYPA_REWRITE_VERBS = ['git', 'docker', 'kubectl', 'dotnet'];
+
+/**
+ * Undo `@hypabolic/pi-hypa`'s bash-rewrite wrapping so the real underlying
+ * command can be validated against the safe/destructive pattern lists.
+ *
+ * When the `pi-hypa` extension is installed, it rewrites every `bash` tool
+ * call through `hypa rewrite --json` for output compression *before* this
+ * extension's `tool_call` handler ever sees it. That rewrite produces one of:
+ *
+ *   - `hypa -c "<command>"`                    (GenericWrapper)
+ *   - `hypa <git|docker|kubectl|dotnet> <args>` (tool-specific reducer)
+ *
+ * Neither form matches any safe-command pattern (they all anchor on the
+ * original leading verb, e.g. `git`, `ls`), so without unwrapping, every
+ * bash command would be blocked in plan mode whenever pi-hypa is active.
+ * This is a best-effort textual unwrap, not a full shell parser — plan mode's
+ * sandbox is a guardrail against accidental writes, not a hard security
+ * boundary, so a conservative regex match is an acceptable trade-off.
+ */
+export function unwrapHypaWrapping(command: string): string {
+  let result = command;
+
+  // hypa -c "<command>" / hypa -c '<command>'  (GenericWrapper)
+  result = result.replace(/\bhypa\s+-c\s+"((?:[^"\\]|\\.)*)"/g, (_match, inner: string) =>
+    inner.replace(/\\(["\\])/g, '$1'),
+  );
+  result = result.replace(/\bhypa\s+-c\s+'((?:[^'\\]|\\.)*)'/g, (_match, inner: string) =>
+    inner.replace(/\\(['\\])/g, '$1'),
+  );
+
+  // hypa -t <args...> / hypa raw <args...>  (explicit no-rewrite passthrough)
+  result = result.replace(/\bhypa\s+(?:-t|raw)\s+/g, '');
+
+  // hypa git|docker|kubectl|dotnet <args...>  (tool-specific output reducers)
+  const verbAlternation = HYPA_REWRITE_VERBS.join('|');
+  result = result.replace(new RegExp(`\\bhypa\\s+(${verbAlternation})\\b`, 'g'), '$1');
+
+  return result;
+}
+
+/**
  * Check if a command is safe for plan mode.
  *
  * Delegates to the shared command sandbox with a custom allow rule
  * for `mkdir -p <plans-root>/` (planner needs to create plan directories).
+ * Commands are first unwrapped from any `@hypabolic/pi-hypa` bash rewriting
+ * so the sandbox validates the real command, not Hypa's wrapper.
  */
 export function isSafeCommand(command: string, plansRoot: string = PLANS_ROOT): boolean {
-  return baseSafeCommand(command, {
+  const unwrapped = unwrapHypaWrapping(command);
+  return baseSafeCommand(unwrapped, {
     allowCommand: (cmd) => isMkdirPlans(cmd, plansRoot),
   });
 }

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { isSafeCommand, isPlanPath } from '../utils.js';
+import { isSafeCommand, isPlanPath, unwrapHypaWrapping } from '../utils.js';
 import { nextTaskId } from '@dreki-gg/taskman';
 
 describe('nextTaskId', () => {
@@ -161,6 +161,66 @@ describe('isSafeCommand', () => {
     test('rm --help is still blocked', () => {
       expect(isSafeCommand('rm --help')).toBe(false);
     });
+  });
+});
+
+describe('unwrapHypaWrapping / isSafeCommand with @hypabolic/pi-hypa active', () => {
+  // When the pi-hypa extension is installed, it rewrites every bash command
+  // through `hypa rewrite --json` for output compression *before* plan mode's
+  // tool_call handler sees it. These fixtures are captured verbatim from real
+  // `hypa rewrite --json` output so the unwrap logic tracks Hypa's actual
+  // wire format, not an assumed one.
+
+  test('unwraps a GenericWrapper command', () => {
+    expect(unwrapHypaWrapping('hypa -c "ls -la"')).toBe('ls -la');
+  });
+
+  test('unwraps a tool-specific rewrite (git)', () => {
+    expect(unwrapHypaWrapping('hypa git status --short')).toBe('git status --short');
+  });
+
+  test('unwraps a tool-specific rewrite (docker)', () => {
+    expect(unwrapHypaWrapping('hypa docker ps')).toBe('docker ps');
+  });
+
+  test('unwraps a tool-specific rewrite (kubectl)', () => {
+    expect(unwrapHypaWrapping('hypa kubectl get pods')).toBe('kubectl get pods');
+  });
+
+  test('unwraps multiple GenericWrapper segments in a chained command', () => {
+    expect(
+      unwrapHypaWrapping(
+        'hypa -c "command -v fff" || hypa -c "true" && fff --help 2>/dev/null | head -40 || hypa -c "true"',
+      ),
+    ).toBe('command -v fff || true && fff --help 2>/dev/null | head -40 || true');
+  });
+
+  test('leaves an already-unwrapped command untouched', () => {
+    expect(unwrapHypaWrapping('ls -la')).toBe('ls -la');
+  });
+
+  test('isSafeCommand allows a hypa-wrapped git status', () => {
+    expect(isSafeCommand('hypa git status --short')).toBe(true);
+  });
+
+  test('isSafeCommand allows a hypa-wrapped ls', () => {
+    expect(isSafeCommand('hypa -c "ls -la"')).toBe(true);
+  });
+
+  test('isSafeCommand allows a hypa-wrapped cat', () => {
+    expect(isSafeCommand('hypa -c "cat file.txt"')).toBe(true);
+  });
+
+  test('isSafeCommand still blocks a hypa-wrapped destructive command', () => {
+    expect(isSafeCommand('hypa -c "rm -rf /"')).toBe(false);
+  });
+
+  test('isSafeCommand still blocks a hypa-wrapped git commit', () => {
+    expect(isSafeCommand('hypa git push origin main')).toBe(false);
+  });
+
+  test('isSafeCommand still honours the mkdir plans-root allowance when hypa-wrapped', () => {
+    expect(isSafeCommand('hypa -c "mkdir -p .taskman/plans/my-plan"')).toBe(true);
   });
 });
 
