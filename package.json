@@ -40,18 +40,18 @@
     ]
   },
   "dependencies": {
-    "@dreki-gg/pi-command-sandbox": "^0.3.0",
-    "@dreki-gg/taskman": "^0.7.1",
-    "effect": "^3.21.2"
+    "@dreki-gg/pi-command-sandbox": "^0.4.2",
+    "@dreki-gg/taskman": "^0.8.0",
+    "effect": "^3.22.0"
   },
   "devDependencies": {
-    "@types/node": "24",
+    "@types/node": "26",
     "bun-types": "latest",
-    "oxfmt": "^0.43.0",
-    "oxlint": "^1.58.0",
-    "typescript": "^6.0.0",
-    "@earendil-works/pi-coding-agent": "^0.75.4",
-    "@earendil-works/pi-tui": "^0.75.4"
+    "oxfmt": "^0.59.0",
+    "oxlint": "^1.74.0",
+    "typescript": "^7.0.2",
+    "@earendil-works/pi-coding-agent": "^0.80.7",
+    "@earendil-works/pi-tui": "^0.80.7"
   },
   "peerDependencies": {
     "@earendil-works/pi-coding-agent": "*",
