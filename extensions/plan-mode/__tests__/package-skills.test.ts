@@ -72,6 +72,24 @@ describe('bundled visual-prototype skill', () => {
     expect(content).toContain('preview_prototype');
     expect(content).toContain('submit_plan');
   });
+
+  test('documents the required plan field and plan-scoped storage', () => {
+    const content = readFileSync(skillFile, 'utf-8');
+    expect(content).toMatch(/`plan`.*required/i);
+    expect(content).toContain('prototypes/');
+  });
+
+  test('documents immutable versions and the in-place live viewer', () => {
+    const content = readFileSync(skillFile, 'utf-8');
+    expect(content).toMatch(/immutable version/i);
+    expect(content).toMatch(/updates? .*in place/i);
+  });
+
+  test('points reopening at /prototypes instead of republishing', () => {
+    const content = readFileSync(skillFile, 'utf-8');
+    expect(content).toContain('/prototypes');
+    expect(content).toMatch(/session/i);
+  });
 });
 
 describe('bundled planning-context skill', () => {

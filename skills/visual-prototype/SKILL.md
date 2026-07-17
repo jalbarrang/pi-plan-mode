@@ -24,23 +24,28 @@ Do **not** use it for backend-only, refactor-only, or otherwise non-visual work.
 
 If you cannot picture a screen or component changing, skip the prototype. A prototype for invisible work is noise.
 
-### 2. Build it with `preview_prototype`
+### 2. Publish it with `preview_prototype`
 
 Call `preview_prototype` with:
 
-- `title` — short name for the prototype
-- `intent` — one line describing what it shows
-- `html` — a complete, self-contained HTML document you author **with full freedom**. There is no template engine and no imposed theme: pick your own markup, fonts, colors, layout, and inline `<style>`/`<script>`. Assume nothing about a host page.
+- `plan` — **required.** The kebab-case draft plan name that owns this prototype — the same name you will later pass to `submit_plan`. Versions are stored under `<plans-root>/<plan>/prototypes/<slug>/` and archive with the plan.
+- `title` — short name for the prototype (its slug is derived from this)
+- `intent` — one line describing what this version shows
+- `html` — a complete, self-contained HTML document you author **with full freedom**. There is no template engine and no imposed theme: pick your own markup, fonts, colors, layout, and inline `<style>`/`<script>`. Assume nothing about a host page. (A bare fragment is tolerated and dropped into a minimal unstyled shell, but prefer sending a full document.)
 
-The tool persists your HTML to `<plans-root>/_prototypes/<slug>.html` (default plans root: `.taskman/plans/`) and opens it for review. It does not wrap, restyle, or theme your markup — what you write is what the user sees. (A bare fragment is tolerated and dropped into a minimal unstyled shell, but prefer sending a full document.)
+The first publish opens a live viewer in the browser at a local URL. Every later publish for the same plan and title creates a new **immutable version** (v001, v002, …) and the open viewer updates **in place** — same tab, no reopen. The viewer shows the version history, so earlier revisions stay navigable while you iterate.
 
 **Avoid generic boilerplate.** A dark dashboard with a purple accent and a card is not a design — it is slop. Design something that fits the actual product. For real design taste, delegate the markup to the `ux-designer` subagent and pass its HTML straight through `preview_prototype`.
 
 ### 3. Get a reaction before submitting
 
-Stop and ask the user what they think. Iterate on the prototype — call `preview_prototype` again with revisions — until the visual direction is agreed. Only then move toward `submit_plan`.
+Stop and ask the user what they think. The viewer has a feedback box that copies a version-qualified note (`Prototype feedback [<slug> v<n>, plan <plan>]: …`) for pasting straight back into the pi session. Iterate — publish revisions until the visual direction is agreed. Only then move toward `submit_plan`.
 
 `submit_plan` never generates HTML. The prototype lives entirely in the planning phase; its job is done once the user has reacted.
+
+## Reopening and lifecycle
+
+The viewer URL is local and lives only as long as the current pi session — starting a new session, resuming, or forking replaces it. The versions on disk persist: run `/prototypes [plan]` at any time to reopen a stored prototype under a fresh URL. Do not re-call `preview_prototype` just to reopen a viewer.
 
 ## Relationship to context.md
 

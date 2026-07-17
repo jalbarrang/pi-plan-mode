@@ -51,6 +51,13 @@ describe('buildPlanModePrompt', () => {
     // Should clarify subagent is for evaluation, not for the whole workflow
     expect(prompt).toMatch(/subagent|voting|evaluat/i);
   });
+
+  test('ties preview_prototype to the plan slug and the live viewer loop', () => {
+    expect(prompt).toMatch(/preview_prototype.*plan.*submit_plan/is);
+    expect(prompt).toMatch(/immutable version/i);
+    expect(prompt).toContain('updates in place');
+    expect(prompt).toContain('/prototypes');
+  });
 });
 
 describe('buildPlanModePrompt lightweight plan guidance', () => {

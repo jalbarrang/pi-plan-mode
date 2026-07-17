@@ -39,7 +39,9 @@ pi install npm:@dreki-gg/pi-questionnaire
 | Command  | `/plans`       | List/filter/sort plans                          |
 | Command  | `/initiatives` | List initiatives with member-plan rollup        |
 | Command  | `/todos`       | Show current plan progress                     |
+| Command  | `/prototypes [plan]` | Reopen a stored prototype in the live viewer |
 | Shortcut | `Ctrl+Alt+P`   | Toggle plan mode                               |
+| Tool     | `preview_prototype` | Publish a plan-owned HTML prototype to a live local viewer (immutable versions) |
 | Tool     | `revise_plan`  | Rewrite an existing plan in place (title/handoff/tasks) |
 | Tool     | `update_task`  | Mark a task done / skipped / blocked           |
 | Tool     | `update_tasks` | Mark several tasks done / skipped in one call  |
@@ -51,6 +53,27 @@ pi install npm:@dreki-gg/pi-questionnaire
 | Tool     | `update_initiative` | Close/reopen an initiative: done, superseded, abandoned, in-progress |
 | Tool     | `initiative_status` | Snapshot an initiative: member plans, progress, ready/blocked |
 | Tool     | `reconcile_plans` | Detect & repair drift between tasks.jsonl and the registry (plans **and** initiatives) |
+
+## Prototypes — artifact-style visual review
+
+For visual/UI work, the planner publishes an HTML prototype with `preview_prototype({ plan, title, intent, html })`. `plan` is required and must match the draft name later passed to `submit_plan` — prototypes live with their owning plan and archive with it.
+
+The review loop mirrors Claude Code artifacts, kept entirely local:
+
+- The **first publish** opens a live viewer in your browser at a `127.0.0.1` URL (loopback-only, token-guarded, sandboxed iframe with a strict CSP).
+- **Every later publish** for the same plan/title writes a new immutable version (`v001.html`, `v002.html`, …) and the open viewer updates **in place** over SSE — same tab, no reopen.
+- The viewer offers **version navigation** (earlier revisions stay browsable), a live-updates toggle, and a **feedback box** that copies a version-qualified note (`Prototype feedback [<slug> v3, plan <plan>]: …`) for pasting back into the pi session.
+
+Storage layout (inside the plans root):
+
+```text
+<plans-root>/<plan>/prototypes/<slug>/
+├── manifest.json   # title, per-version intents, latest version
+├── v001.html       # immutable — never overwritten
+└── v002.html
+```
+
+The viewer URL is **local and session-scoped**: it dies with the pi session (`/new`, `/resume`, `/fork`, quit). The versions on disk persist — run `/prototypes [plan]` in any later session to reopen them under a fresh URL. There is no cloud publishing or sharing; nothing leaves your machine.
 
 ## Initiatives — grouping large work
 

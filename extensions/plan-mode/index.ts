@@ -42,6 +42,7 @@ import { registerSubmitPlanTool } from './tools/submit-plan.js';
 import { registerSubmitInitiativeTool } from './tools/submit-initiative.js';
 import { registerRevisePlanTool } from './tools/revise-plan.js';
 import { registerPreviewPrototypeTool } from './tools/preview-prototype.js';
+import { createPrototypeWorkspace } from './prototypes/workspace.js';
 import { registerUpdateTaskTool } from './tools/update-task.js';
 import { registerUpdateTasksTool } from './tools/update-tasks.js';
 import { registerAddTaskTool } from './tools/add-task.js';
@@ -54,6 +55,7 @@ import { registerReconcilePlansTool } from './tools/reconcile-plans.js';
 import { isSafeCommand, isPlanPath } from './utils.js';
 import { PLANS_ROOT } from './ledger.js';
 import { handleListPlans } from './commands/list-plans.js';
+import { handlePrototypes } from './commands/prototypes.js';
 import { handleListInitiatives } from './commands/list-initiatives.js';
 import { createPlanReferenceIndex } from './references/plan-index.js';
 import { registerPlanReferenceAutocomplete } from './references/autocomplete.js';
@@ -64,6 +66,8 @@ export default function planMode(pi: ExtensionAPI): void {
   // Build the live Effect runtime once; all storage I/O runs through this
   // bridge. The root honours `.taskmanrc` (default `.taskman/plans`).
   const runPlanIO = makePlanRuntime(PLANS_ROOT);
+  // Owns prototype storage, the loopback live viewer, and browser-opening policy.
+  const prototypeWorkspace = createPrototypeWorkspace({ runPlanIO, plansRoot: PLANS_ROOT });
   // Cached plan list for `@plan:<slug>` autocomplete; refreshed at session start.
   const planReferenceIndex = createPlanReferenceIndex(runPlanIO);
 
@@ -94,7 +98,7 @@ export default function planMode(pi: ExtensionAPI): void {
 
   registerSubmitInitiativeTool(pi, runPlanIO);
 
-  registerPreviewPrototypeTool(pi, runPlanIO);
+  registerPreviewPrototypeTool(pi, prototypeWorkspace);
 
   // Shared task-write closure: mutate the in-memory task, persist tasks.jsonl,
   // and re-derive registry status. Used by both update_task and update_tasks.
@@ -297,6 +301,13 @@ export default function planMode(pi: ExtensionAPI): void {
     },
   });
 
+  pi.registerCommand('prototypes', {
+    description: 'Open a persisted prototype in the live viewer. Usage: /prototypes [plan]',
+    handler: async (args, ctx) => {
+      await handlePrototypes(ctx, prototypeWorkspace, args);
+    },
+  });
+
   pi.registerCommand('initiatives', {
     description:
       'List all initiatives with member-plan rollup. Usage: /initiatives [filter]. Filters: all, in-progress, done, superseded, abandoned.',
@@ -338,6 +349,11 @@ export default function planMode(pi: ExtensionAPI): void {
         await enterPlanMode(state, pi, ctx);
       }
     },
+  });
+
+  // ── Event: shut down the prototype viewer with the session ───────────────
+  pi.on('session_shutdown', async () => {
+    await prototypeWorkspace.close();
   });
 
   // ── Event: block destructive bash + restrict writes in plan mode ──────────
