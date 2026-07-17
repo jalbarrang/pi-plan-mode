@@ -1,5 +1,21 @@
 # @dreki-gg/pi-plan-mode
 
+## [0.32.0](https://github.com/jalbarrang/pi-plan-mode/compare/v0.31.0...v0.32.0) (2026-07-17)
+
+
+### ⚠ BREAKING CHANGES
+
+* preview_prototype requires a new `plan` parameter (the draft name later passed to submit_plan) and no longer writes single overwritten files to <plans-root>/_prototypes/. Existing _prototypes/ files are left untouched but are not discovered by /prototypes.
+
+### Features
+
+* artifact-style live prototype previews with versioned plan-scoped storage ([275850c](https://github.com/jalbarrang/pi-plan-mode/commit/275850c9567bd3244b8b8fd6e5becab2344070e8))
+
+
+### Bug Fixes
+
+* **deps:** bump dependencies to latest ([#8](https://github.com/jalbarrang/pi-plan-mode/issues/8)) ([1a22779](https://github.com/jalbarrang/pi-plan-mode/commit/1a22779ae8fe19290e85562eaeb95fc84230b460))
+
 ## [0.31.0](https://github.com/jalbarrang/pi-plan-mode/compare/v0.30.1...v0.31.0) (2026-07-15)
 
 
