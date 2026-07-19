@@ -32,6 +32,8 @@ describe('workflow root wiring', () => {
       registerShortcut: () => {},
       on: (event: string, handler: (event: unknown, ctx: unknown) => Promise<unknown>) => events.set(event, handler),
       setActiveTools: () => {},
+      getActiveTools: () => [],
+      getAllTools: () => [],
       appendEntry: () => {},
       sendUserMessage: () => {},
     };

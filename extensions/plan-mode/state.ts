@@ -12,6 +12,13 @@ export class PlanModeState {
   executionStartIdx: number | undefined;
   workflow: WorkflowSessionState = {};
   previousModel: { provider: string; id: string } | undefined;
+  /**
+   * Active toolset captured when entering a mode from idle. Exiting to idle
+   * restores this snapshot instead of guessing a "normal" toolset — narrowing
+   * to EXEC_TOOLS on exit permanently stripped tools registered by other
+   * extensions (subagent, questionnaire, …) for the rest of the session.
+   */
+  preModeActiveTools: string[] | undefined;
 
   /** Compatibility facade for the existing plan controller. */
   get planEnabled(): boolean {
@@ -54,6 +61,7 @@ export class PlanModeState {
       plan: this.plan,
       executionStartIdx: this.executionStartIdx,
       workflow: this.workflow,
+      preModeActiveTools: this.preModeActiveTools,
     });
   }
 
@@ -70,6 +78,7 @@ export class PlanModeState {
       this.plan = saved.data.plan ?? this.plan;
       this.executionStartIdx = saved.data.executionStartIdx ?? this.executionStartIdx;
       this.workflow = saved.data.workflow ?? this.workflow;
+      this.preModeActiveTools = saved.data.preModeActiveTools ?? this.preModeActiveTools;
     }
   }
 
@@ -79,6 +88,7 @@ export class PlanModeState {
     this.plan = undefined;
     this.executionStartIdx = undefined;
     this.workflow = {};
+    this.preModeActiveTools = undefined;
   }
 
   /** Exit plan/execution mode but keep plan data for update_task tracking. */

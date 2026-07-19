@@ -40,4 +40,6 @@ export interface PersistedState {
   plan: PlanData | undefined;
   executionStartIdx: number | undefined;
   workflow?: WorkflowSessionState;
+  /** Active toolset snapshotted when a mode was entered from idle; restored on exit. */
+  preModeActiveTools?: string[];
 }

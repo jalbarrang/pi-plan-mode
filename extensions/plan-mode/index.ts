@@ -35,10 +35,12 @@ import { buildPlanModePrompt, buildExecutionPrompt } from './prompts.js';
 import { filterExecutionMessages, filterStalePlanMessages } from './context-filter.js';
 import { activeTasksResolved, deferredTasks, isPlanFinalizable } from '@dreki-gg/taskman';
 import {
+  captureIdleTools,
   enterPlanMode,
   enterWorkflowMode,
   exitPlanMode,
   exitWorkflowMode,
+  restoreIdleTools,
   switchModel,
 } from './phase-transitions.js';
 import { resumePlan, executeInNewSession } from './resume.js';
@@ -684,7 +686,7 @@ export default function planMode(pi: ExtensionAPI): void {
 
         const { previousModel: dpm } = state;
         state.exitPreservingPlan();
-        pi.setActiveTools(EXEC_TOOLS);
+        restoreIdleTools(state, pi);
         if (dpm) await switchModel(pi, ctx, dpm);
         updateUI(state, ctx);
         state.persist(pi);
@@ -745,8 +747,9 @@ export default function planMode(pi: ExtensionAPI): void {
         );
 
         const { previousModel: pm } = state;
+        // Restore before reset() — reset clears the persisted toolset snapshot.
+        restoreIdleTools(state, pi);
         state.reset();
-        pi.setActiveTools(EXEC_TOOLS);
         if (pm) await switchModel(pi, ctx, pm);
         updateUI(state, ctx);
         state.persist(pi);
@@ -794,6 +797,7 @@ export default function planMode(pi: ExtensionAPI): void {
           : undefined;
       }
       if (state.plan) {
+        captureIdleTools(state, pi);
         state.executing = true;
         state.planEnabled = false;
         pi.setActiveTools(EXEC_TOOLS);
