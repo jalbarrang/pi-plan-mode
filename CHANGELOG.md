@@ -1,5 +1,12 @@
 # @dreki-gg/pi-plan-mode
 
+## [0.34.0](https://github.com/jalbarrang/pi-plan-mode/compare/v0.33.0...v0.34.0) (2026-07-19)
+
+
+### Features
+
+* **workflow:** add reviewed dynamic workflow mode ([5ca70b8](https://github.com/jalbarrang/pi-plan-mode/commit/5ca70b8bbf1e9ef88b14039991c46438841f63a9))
+
 ## [0.33.0](https://github.com/jalbarrang/pi-plan-mode/compare/v0.32.0...v0.33.0) (2026-07-19)
 
 
