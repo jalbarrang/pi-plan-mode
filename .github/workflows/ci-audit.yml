@@ -15,30 +15,37 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
       - uses: oven-sh/setup-bun@v2
 
       - name: Bump dependencies to latest
         run: |
-          bunx npm-check-updates -u
-          bun install
+          pnpm dlx npm-check-updates -u
+          pnpm install --no-frozen-lockfile
 
       - name: Typecheck
-        run: bun run typecheck
+        run: pnpm typecheck
 
       - name: Build (if present)
         run: |
           if [ -n "$(jq -r '.scripts.build // empty' package.json)" ]; then
-            bun run build
+            pnpm build
           fi
 
       - name: Test (if present)
         run: |
           if [ -n "$(jq -r '.scripts.test // empty' package.json)" ]; then
-            bun run test
+            pnpm test
           fi
 
       - name: Security audit (informational)
-        run: bun audit || true
+        run: pnpm audit || true
 
       - name: Open PR with the bumps
         uses: peter-evans/create-pull-request@v7

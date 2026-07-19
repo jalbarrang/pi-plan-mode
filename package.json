@@ -12,6 +12,7 @@
     "url": "git+https://github.com/jalbarrang/pi-plan-mode.git"
   },
   "type": "module",
+  "packageManager": "pnpm@11.14.0",
   "bin": {
     "pi-plan-mode": "bin/clean-plans.js"
   },
@@ -42,9 +43,11 @@
   "dependencies": {
     "@dreki-gg/pi-command-sandbox": "^0.4.2",
     "@dreki-gg/taskman": "^0.8.0",
-    "effect": "^3.22.0"
+    "effect": "^3.22.0",
+    "typebox": "1.1.38"
   },
   "devDependencies": {
+    "@earendil-works/pi-ai": "^0.80.7",
     "@types/node": "26",
     "bun-types": "latest",
     "oxfmt": "^0.59.0",
@@ -54,10 +57,14 @@
     "@earendil-works/pi-tui": "^0.80.7"
   },
   "peerDependencies": {
+    "@earendil-works/pi-ai": "*",
     "@earendil-works/pi-coding-agent": "*",
     "@earendil-works/pi-tui": "*"
   },
   "peerDependenciesMeta": {
+    "@earendil-works/pi-ai": {
+      "optional": true
+    },
     "@earendil-works/pi-coding-agent": {
       "optional": true
     },
