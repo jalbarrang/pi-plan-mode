@@ -7,6 +7,7 @@ import type { PlanModeState } from './state.js';
 import {
   PLAN_TOOLS,
   EXEC_TOOLS,
+  WORKFLOW_TOOLS,
 } from './constants.js';
 import { updateUI } from './ui.js';
 
@@ -40,6 +41,32 @@ export async function enterPlanMode(
   state.previousModel = ctx.model ? { provider: ctx.model.provider, id: ctx.model.id } : undefined;
   pi.setActiveTools(PLAN_TOOLS);
   ctx.ui.notify('Plan mode ON', 'info');
+  updateUI(state, ctx);
+  state.persist(pi);
+}
+
+/** Enter read-only workflow design without discarding the attached plan. */
+export function enterWorkflowMode(
+  state: PlanModeState,
+  pi: ExtensionAPI,
+  ctx: ExtensionContext,
+): void {
+  state.phase = 'workflow';
+  state.executionStartIdx = undefined;
+  pi.setActiveTools(WORKFLOW_TOOLS);
+  ctx.ui.notify('Workflow mode ON', 'info');
+  updateUI(state, ctx);
+  state.persist(pi);
+}
+
+export async function exitWorkflowMode(
+  state: PlanModeState,
+  pi: ExtensionAPI,
+  ctx: ExtensionContext,
+): Promise<void> {
+  state.exitPreservingPlan();
+  pi.setActiveTools(EXEC_TOOLS);
+  ctx.ui.notify('Workflow mode OFF', 'info');
   updateUI(state, ctx);
   state.persist(pi);
 }

@@ -26,6 +26,7 @@ Recommended companions:
 
 ```bash
 pi install npm:@dreki-gg/pi-questionnaire
+pi install npm:@dreki-gg/pi-subagent
 ```
 
 ## What it provides
@@ -40,6 +41,10 @@ pi install npm:@dreki-gg/pi-questionnaire
 | Command  | `/initiatives` | List initiatives with member-plan rollup        |
 | Command  | `/todos`       | Show current plan progress                     |
 | Command  | `/prototypes [plan]` | Reopen a stored prototype in the live viewer |
+| Command  | `/workflow [task]` | Design and approve a bounded background subagent workflow |
+| Command  | `/workflow save [project\|user] [name]` | Save the latest approved or cancelled draft as a reusable chain |
+| Command  | `/workflow run [project\|user] <name>` | Launch a saved workflow |
+| Command  | `/workflow status\|stop\|resume` | Inspect or control the session's current workflow run |
 | Shortcut | `Ctrl+Alt+P`   | Toggle plan mode                               |
 | Tool     | `preview_prototype` | Publish a plan-owned HTML prototype to a live local viewer (immutable versions) |
 | Tool     | `revise_plan`  | Rewrite an existing plan in place (title/handoff/tasks) |
@@ -53,6 +58,26 @@ pi install npm:@dreki-gg/pi-questionnaire
 | Tool     | `update_initiative` | Close/reopen an initiative: done, superseded, abandoned, in-progress |
 | Tool     | `initiative_status` | Snapshot an initiative: member plans, progress, ready/blocked |
 | Tool     | `reconcile_plans` | Detect & repair drift between tasks.jsonl and the registry (plans **and** initiatives) |
+| Tool     | `submit_workflow` | Validate, inspect/edit, approve, and launch a bounded workflow |
+
+## Dynamic Workflow Mode
+
+`/workflow <task>` is a read-only design mode for large, parallelizable work. It mirrors the core loop of Claude Code dynamic workflows while using `@dreki-gg/pi-subagent` as the runner:
+
+1. The agent investigates and proposes a declarative workflow.
+2. `submit_workflow` validates it, shows the exact JSON, and requires your explicit approval.
+3. The approved version launches in the background. `/workflow status`, `/workflow stop`, and `/workflow resume` control that run.
+4. `/workflow save` stores a reviewed workflow in `.pi/chains/<name>.chain.json` (project) or `~/.pi/agent/chains/<name>.chain.json` (user); `/workflow run` replays it.
+
+The workflow format is intentionally bounded: sequential agent steps, static parallel groups, and dynamic fan-out from an earlier named JSON output. Every fan-out must declare `maxItems`; the validator rejects workflows whose static worst case exceeds 100 agents. Product writes remain blocked until the approved background run starts.
+
+Install the companion runner before using it:
+
+```bash
+pi install npm:@dreki-gg/pi-subagent
+```
+
+This is not an arbitrary-JavaScript runtime. It does not include Claude Code's `ultracode` keyword, automatic routing, arbitrary loop/branch scripts, workflow-size configuration, or large-run warning UI.
 
 ## Prototypes — artifact-style visual review
 

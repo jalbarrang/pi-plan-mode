@@ -41,5 +41,18 @@ export const EXEC_TOOLS = [
   'reconcile_plans',
 ];
 
+/** Read-only workflow-design surface. Launches are owned by submit_workflow. */
+export const WORKFLOW_TOOLS = [
+  'read',
+  'bash',
+  'grep',
+  'find',
+  'ls',
+  'subagent',
+  'list_agents',
+  'search_skills',
+  'submit_workflow',
+];
+
 // ── Exec-pending marker file name ────────────────────────────────────────────
 export const EXEC_PENDING_FILE = '.exec-pending.json';

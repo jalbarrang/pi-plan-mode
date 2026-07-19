@@ -8,20 +8,22 @@ export function filterExecutionMessages<T>(messages: T[], executionStartIdx: num
   return messages.filter((_m, i) => i >= executionStartIdx);
 }
 
-/** Strip stale plan-mode injected messages when not in plan mode. */
+/** Strip stale plan/workflow mode injected messages when their mode is inactive. */
 export function filterStalePlanMessages<T>(messages: T[]): T[] {
   return messages.filter((m) => {
     const msg = m as { customType?: string; role?: string; content?: unknown };
     if (msg.customType === 'plan-mode-context') return false;
+    if (msg.customType === 'workflow-mode-context') return false;
     if (msg.role !== 'user') return true;
     const content = msg.content;
     if (typeof content === 'string') {
-      return !content.includes('[PLAN MODE ACTIVE]');
+      return !content.includes('[PLAN MODE ACTIVE]') && !content.includes('[WORKFLOW MODE ACTIVE]');
     }
     if (Array.isArray(content)) {
       return !content.some(
         (c: { type?: string; text?: string }) =>
-          c.type === 'text' && c.text?.includes('[PLAN MODE ACTIVE]'),
+          c.type === 'text' &&
+          (c.text?.includes('[PLAN MODE ACTIVE]') || c.text?.includes('[WORKFLOW MODE ACTIVE]')),
       );
     }
     return true;

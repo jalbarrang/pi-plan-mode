@@ -22,6 +22,37 @@ function makePlan(overrides?: Partial<PlanData>): PlanData {
 }
 
 describe('PlanModeState', () => {
+  test('keeps plan, execution, and workflow modes mutually exclusive', () => {
+    const state = new PlanModeState();
+    state.planEnabled = true;
+    expect(state.phase).toBe('plan');
+    expect(state.executing).toBe(false);
+
+    state.executing = true;
+    expect(state.phase).toBe('execute');
+    expect(state.planEnabled).toBe(false);
+
+    state.phase = 'workflow';
+    expect(state.workflowEnabled).toBe(true);
+    expect(state.planEnabled).toBe(false);
+    expect(state.executing).toBe(false);
+  });
+
+  test('restores legacy plan and execution entries into the canonical phase', () => {
+    const plan = makePlan();
+    const planState = new PlanModeState();
+    planState.restore([
+      { type: 'custom', customType: 'plan-mode', data: { planEnabled: true, executing: false, planDir: 'test-plan', plan, executionStartIdx: undefined } },
+    ]);
+    expect(planState.phase).toBe('plan');
+
+    const executionState = new PlanModeState();
+    executionState.restore([
+      { type: 'custom', customType: 'plan-mode', data: { planEnabled: false, executing: true, planDir: 'test-plan', plan, executionStartIdx: 4 } },
+    ]);
+    expect(executionState.phase).toBe('execute');
+  });
+
   describe('exitPreservingPlan', () => {
     test('clears mode flags but keeps plan data when a plan was submitted', () => {
       const state = new PlanModeState();

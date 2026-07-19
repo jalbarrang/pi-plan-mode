@@ -20,10 +20,24 @@ export type {
 
 import type { PlanData } from '@dreki-gg/taskman';
 
+/** Mutually exclusive extension phase persisted with the Pi session. */
+export type PlanModePhase = 'idle' | 'plan' | 'execute' | 'workflow';
+
+export interface WorkflowSessionState {
+  /** Model-authored draft, revalidated before every launch or save. */
+  draft?: unknown;
+  /** Most recent background run in the current Pi process. */
+  runId?: string;
+}
+
 export interface PersistedState {
-  planEnabled: boolean;
-  executing: boolean;
+  /** Canonical phase; absent from sessions persisted by pre-workflow releases. */
+  phase?: PlanModePhase;
+  /** Legacy compatibility fields. */
+  planEnabled?: boolean;
+  executing?: boolean;
   planDir: string | undefined;
   plan: PlanData | undefined;
   executionStartIdx: number | undefined;
+  workflow?: WorkflowSessionState;
 }

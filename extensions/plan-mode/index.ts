@@ -21,6 +21,7 @@ import { Key } from '@earendil-works/pi-tui';
 import {
   PLAN_TOOLS,
   EXEC_TOOLS,
+  WORKFLOW_TOOLS,
 } from './constants.js';
 import type { TaskStatus } from './types.js';
 import { PlanModeState } from './state.js';
@@ -33,12 +34,19 @@ import { updateUI } from './ui.js';
 import { buildPlanModePrompt, buildExecutionPrompt } from './prompts.js';
 import { filterExecutionMessages, filterStalePlanMessages } from './context-filter.js';
 import { activeTasksResolved, deferredTasks, isPlanFinalizable } from '@dreki-gg/taskman';
-import { enterPlanMode, exitPlanMode, switchModel } from './phase-transitions.js';
+import {
+  enterPlanMode,
+  enterWorkflowMode,
+  exitPlanMode,
+  exitWorkflowMode,
+  switchModel,
+} from './phase-transitions.js';
 import { resumePlan, executeInNewSession } from './resume.js';
 import { resolveActivePlan, focusActivePlan } from './resolve-plan.js';
 import { reconcileInitiativeForPlan } from '@dreki-gg/taskman';
 import { collectPlanDrift } from '@dreki-gg/taskman';
 import { registerSubmitPlanTool } from './tools/submit-plan.js';
+import { registerSubmitWorkflowTool } from './tools/submit-workflow.js';
 import { registerSubmitInitiativeTool } from './tools/submit-initiative.js';
 import { registerRevisePlanTool } from './tools/revise-plan.js';
 import { registerPreviewPrototypeTool } from './tools/preview-prototype.js';
@@ -60,6 +68,15 @@ import { handleListInitiatives } from './commands/list-initiatives.js';
 import { createPlanReferenceIndex } from './references/plan-index.js';
 import { registerPlanReferenceAutocomplete } from './references/autocomplete.js';
 import { registerPlanReferenceContext } from './references/context.js';
+import { WorkflowModeController } from './workflow/controller.js';
+import {
+  defaultWorkflowStoreRoots,
+  loadWorkflow,
+  saveWorkflow,
+  type WorkflowStoreScope,
+} from './workflow/store.js';
+import { validateWorkflowSpec, type WorkflowSpec } from './workflow/spec.js';
+import { buildWorkflowModePrompt } from './workflow/prompt.js';
 
 export default function planMode(pi: ExtensionAPI): void {
   const state = new PlanModeState();
@@ -70,6 +87,7 @@ export default function planMode(pi: ExtensionAPI): void {
   const prototypeWorkspace = createPrototypeWorkspace({ runPlanIO, plansRoot: PLANS_ROOT });
   // Cached plan list for `@plan:<slug>` autocomplete; refreshed at session start.
   const planReferenceIndex = createPlanReferenceIndex(runPlanIO);
+  const workflowController = new WorkflowModeController(state, pi);
 
   // ── Flag ──────────────────────────────────────────────────────────────────
   pi.registerFlag('plan', {
@@ -83,6 +101,13 @@ export default function planMode(pi: ExtensionAPI): void {
     onPlanSubmitted: (dir, submittedPlan) => {
       state.planDir = dir;
       state.plan = submittedPlan;
+      state.persist(pi);
+    },
+  });
+
+  registerSubmitWorkflowTool(pi, workflowController, {
+    onDraft: (workflow) => {
+      state.workflow.draft = workflow;
       state.persist(pi);
     },
   });
@@ -273,6 +298,7 @@ export default function planMode(pi: ExtensionAPI): void {
         await exitPlanMode(state, pi, ctx);
         return;
       }
+      if (state.workflowEnabled) await exitWorkflowMode(state, pi, ctx);
       await enterPlanMode(state, pi, ctx);
       if (trimmed) pi.sendUserMessage(trimmed);
     },
@@ -290,6 +316,103 @@ export default function planMode(pi: ExtensionAPI): void {
         state.plan.tasks.find((task) => task.status === 'pending')?.id ?? state.plan.tasks[0]?.id;
       const kickoff = `Execute the following plan: "${state.plan.title}"\n\nTasks:\n${taskList}\n\nStart with ${first}. Call update_task after completing each task.`;
       await executeInNewSession(ctx, runPlanIO, state.planDir, state.plan, kickoff);
+    },
+  });
+
+  pi.registerCommand('workflow', {
+    description:
+      'Design a bounded background workflow. Usage: /workflow [task | save [project|user] [name] | run [project|user] <name> | status | stop | resume]',
+    handler: async (args, ctx) => {
+      const trimmed = args?.trim() ?? '';
+      const [command, ...rest] = trimmed.split(/\s+/);
+
+      if (command === 'save') {
+        const draft = workflowController.draft;
+        if (!draft) {
+          ctx.ui.notify('No workflow draft to save. Start with /workflow <task>.', 'error');
+          return;
+        }
+        const scope = rest[0] === 'user' ? 'user' : 'project';
+        const name = rest[0] === 'project' || rest[0] === 'user' ? rest[1] : rest[0];
+        const candidate: WorkflowSpec = name ? { ...draft, name } : draft;
+        const validation = validateWorkflowSpec(candidate);
+        if (!validation.valid || !validation.normalized) {
+          ctx.ui.notify(`Cannot save workflow: ${validation.errors.join(' ')}`, 'error');
+          return;
+        }
+        const roots = defaultWorkflowStoreRoots(ctx.cwd);
+        try {
+          const path = await saveWorkflow(roots, scope as WorkflowStoreScope, validation.normalized);
+          ctx.ui.notify(`Workflow saved to ${path}`, 'info');
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          ctx.ui.notify(`Workflow not saved: ${message}`, 'error');
+        }
+        return;
+      }
+
+      if (command === 'status') {
+        try {
+          const status = await workflowController.status();
+          const runs = Array.isArray(status) ? status : [status];
+          const text = runs.length
+            ? runs
+                .map((run) => `${run.id}: ${run.status} (${run.phases.map((phase) => phase.status).join(', ')})`)
+                .join('\n')
+            : 'No workflow runs found in this Pi session.';
+          ctx.ui.notify(text, 'info');
+        } catch (error) {
+          ctx.ui.notify(error instanceof Error ? error.message : String(error), 'error');
+        }
+        return;
+      }
+
+      if (command === 'run') {
+        const scope = rest[0] === 'user' ? 'user' : 'project';
+        const name = rest[0] === 'project' || rest[0] === 'user' ? rest[1] : rest[0];
+        if (!name) {
+          ctx.ui.notify('Usage: /workflow run [project|user] <name>', 'error');
+          return;
+        }
+        try {
+          const workflow = await loadWorkflow(defaultWorkflowStoreRoots(ctx.cwd), scope as WorkflowStoreScope, name);
+          const runId = await workflowController.launch(workflow);
+          ctx.ui.notify(`Workflow "${workflow.name}" launched in the background as ${runId}.`, 'info');
+        } catch (error) {
+          ctx.ui.notify(error instanceof Error ? error.message : String(error), 'error');
+        }
+        return;
+      }
+
+      if (command === 'stop') {
+        try {
+          await workflowController.stop();
+          ctx.ui.notify('Workflow stop requested.', 'info');
+        } catch (error) {
+          ctx.ui.notify(error instanceof Error ? error.message : String(error), 'error');
+        }
+        return;
+      }
+
+      if (command === 'resume') {
+        try {
+          const runId = await workflowController.resume();
+          ctx.ui.notify(`Workflow resumed as ${runId}.`, 'info');
+        } catch (error) {
+          ctx.ui.notify(error instanceof Error ? error.message : String(error), 'error');
+        }
+        return;
+      }
+
+      if (state.workflowEnabled) {
+        await exitWorkflowMode(state, pi, ctx);
+        return;
+      }
+      if (state.phase !== 'idle') {
+        await exitPlanMode(state, pi, ctx);
+      }
+      enterWorkflowMode(state, pi, ctx);
+      if (trimmed) pi.sendUserMessage(trimmed);
     },
   });
 
@@ -347,6 +470,7 @@ export default function planMode(pi: ExtensionAPI): void {
       if (state.planEnabled || state.executing) {
         await exitPlanMode(state, pi, ctx);
       } else {
+        if (state.workflowEnabled) await exitWorkflowMode(state, pi, ctx);
         await enterPlanMode(state, pi, ctx);
       }
     },
@@ -359,7 +483,7 @@ export default function planMode(pi: ExtensionAPI): void {
 
   // ── Event: block destructive bash + restrict writes in plan mode ──────────
   pi.on('tool_call', async (event) => {
-    if (!state.planEnabled) return;
+    if (!state.planEnabled && !state.workflowEnabled) return;
 
     // Block destructive bash commands
     if (event.toolName === 'bash') {
@@ -367,18 +491,28 @@ export default function planMode(pi: ExtensionAPI): void {
       if (!isSafeCommand(command)) {
         return {
           block: true,
-          reason: `Plan mode: command blocked. Use /plan to exit plan mode first.\nCommand: ${command}`,
+          reason: `${state.workflowEnabled ? 'Workflow' : 'Plan'} mode: command blocked. Exit the mode before running it.\nCommand: ${command}`,
         };
       }
     }
 
-    // Restrict write to the plans root directory only
+    if (state.workflowEnabled && event.toolName === 'subagent') {
+      return {
+        block: true,
+        reason:
+          'Workflow mode: use list_agents for discovery and submit_workflow for the explicit approval-and-launch step. Direct subagent execution is blocked.',
+      };
+    }
+
+    // Workflow mode permits no writes. Plan mode permits plan-ledger writes.
     if (event.toolName === 'write' || event.toolName === 'edit') {
       const path = event.input.path as string;
-      if (!isPlanPath(path)) {
+      if (state.workflowEnabled || !isPlanPath(path)) {
         return {
           block: true,
-          reason: `Plan mode: writes are restricted to the ${PLANS_ROOT}/ directory only.\nPath: ${path}`,
+          reason: state.workflowEnabled
+            ? `Workflow mode: writes are blocked until the approved workflow runs.\nPath: ${path}`
+            : `Plan mode: writes are restricted to the ${PLANS_ROOT}/ directory only.\nPath: ${path}`,
         };
       }
     }
@@ -386,7 +520,7 @@ export default function planMode(pi: ExtensionAPI): void {
 
   // ── Event: filter context ─────────────────────────────────────────────────
   pi.on('context', async (event) => {
-    if (state.planEnabled) return;
+    if (state.planEnabled || state.workflowEnabled) return;
     if (state.executing && state.executionStartIdx !== undefined) {
       return { messages: filterExecutionMessages(event.messages, state.executionStartIdx) };
     }
@@ -400,6 +534,15 @@ export default function planMode(pi: ExtensionAPI): void {
         message: {
           customType: 'plan-mode-context',
           content: buildPlanModePrompt(),
+          display: false,
+        },
+      };
+    }
+    if (state.workflowEnabled) {
+      return {
+        message: {
+          customType: 'workflow-mode-context',
+          content: buildWorkflowModePrompt(),
           display: false,
         },
       };
@@ -617,6 +760,9 @@ export default function planMode(pi: ExtensionAPI): void {
     if (state.planEnabled) {
       await exitPlanMode(state, pi, ctx);
     }
+    if (state.workflowEnabled) {
+      await exitWorkflowMode(state, pi, ctx);
+    }
   });
 
   // ── Event: session restore ────────────────────────────────────────────────
@@ -672,6 +818,8 @@ export default function planMode(pi: ExtensionAPI): void {
       pi.setActiveTools(PLAN_TOOLS);
     } else if (state.executing) {
       pi.setActiveTools(EXEC_TOOLS);
+    } else if (state.workflowEnabled) {
+      pi.setActiveTools(WORKFLOW_TOOLS);
     }
 
     updateUI(state, ctx);
