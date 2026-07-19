@@ -1,5 +1,12 @@
 # @dreki-gg/pi-plan-mode
 
+## [0.34.1](https://github.com/jalbarrang/pi-plan-mode/compare/v0.34.0...v0.34.1) (2026-07-19)
+
+
+### Bug Fixes
+
+* **tools:** restore the pre-mode toolset when exiting to idle ([4e7ba13](https://github.com/jalbarrang/pi-plan-mode/commit/4e7ba136a813bde0277a4d9d738eeff05cd33382))
+
 ## [0.34.0](https://github.com/jalbarrang/pi-plan-mode/compare/v0.33.0...v0.34.0) (2026-07-19)
 
 
