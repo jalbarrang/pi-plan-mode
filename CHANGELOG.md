@@ -1,5 +1,13 @@
 # @dreki-gg/pi-plan-mode
 
+## [0.34.2](https://github.com/jalbarrang/pi-plan-mode/compare/v0.34.1...v0.34.2) (2026-07-19)
+
+
+### Bug Fixes
+
+* **deps:** bump dependencies to latest ([#16](https://github.com/jalbarrang/pi-plan-mode/issues/16)) ([1358967](https://github.com/jalbarrang/pi-plan-mode/commit/1358967076a439ff55bb2923efc828919bb5d48d))
+* **workflow:** coerce string-serialized workflow input in submit_workflow ([b6f53d6](https://github.com/jalbarrang/pi-plan-mode/commit/b6f53d6cfdb2234742414a026179993f501026ee))
+
 ## [0.34.1](https://github.com/jalbarrang/pi-plan-mode/compare/v0.34.0...v0.34.1) (2026-07-19)
 
 
