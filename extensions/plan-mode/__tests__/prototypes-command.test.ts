@@ -43,11 +43,21 @@ const prototypes: PrototypeSummary[] = [
   },
 ];
 
-function setup(options: { list?: PrototypeSummary[]; select?: string | null | undefined } = {}) {
+function setup(
+  options: {
+    list?: PrototypeSummary[];
+    select?: string | null | undefined;
+    wasRunning?: boolean;
+    serverStatus?: { running: boolean; port?: number };
+  } = {},
+) {
   const notifications: Array<[string, string]> = [];
   const selections: Array<[string, string[]]> = [];
   const opened: PrototypeRef[] = [];
   const listCalls: Array<string | undefined> = [];
+  let startCalls = 0;
+  let stopCalls = 0;
+  let statusCalls = 0;
   const workspace: PrototypeWorkspace = {
     publish: async () => {
       throw new Error("not used");
@@ -60,6 +70,18 @@ function setup(options: { list?: PrototypeSummary[]; select?: string | null | un
       opened.push(ref);
       return { url: `http://127.0.0.1:1234/${ref.plan}/${ref.slug}` };
     },
+    startServer: async () => {
+      startCalls += 1;
+      return { port: 4321 };
+    },
+    stopServer: async () => {
+      stopCalls += 1;
+      return { wasRunning: options.wasRunning ?? true };
+    },
+    serverStatus: () => {
+      statusCalls += 1;
+      return options.serverStatus ?? { running: true, port: 4321 };
+    },
     close: async () => {},
   };
   const ctx = {
@@ -71,7 +93,23 @@ function setup(options: { list?: PrototypeSummary[]; select?: string | null | un
       },
     },
   } as unknown as ExtensionCommandContext;
-  return { ctx, workspace, notifications, selections, opened, listCalls };
+  return {
+    ctx,
+    workspace,
+    notifications,
+    selections,
+    opened,
+    listCalls,
+    get startCalls() {
+      return startCalls;
+    },
+    get stopCalls() {
+      return stopCalls;
+    },
+    get statusCalls() {
+      return statusCalls;
+    },
+  };
 }
 
 describe("/prototypes", () => {
@@ -125,5 +163,48 @@ describe("/prototypes", () => {
     await handlePrototypes(ctx, workspace, "  Alpha Plan  ");
 
     expect(listCalls).toEqual(["alpha-plan"]);
+  });
+
+  test("starts the prototype server without listing or opening a prototype", async () => {
+    const result = setup();
+
+    await handlePrototypes(result.ctx, result.workspace, "start");
+
+    expect(result.startCalls).toBe(1);
+    expect(result.listCalls).toEqual([]);
+    expect(result.opened).toEqual([]);
+    expect(result.notifications).toEqual([
+      ["Prototype server running on 127.0.0.1:4321.", "info"],
+    ]);
+  });
+
+  test("stops the prototype server and reports whether it was running", async () => {
+    const running = setup();
+    const stopped = setup({ wasRunning: false });
+
+    await handlePrototypes(running.ctx, running.workspace, "stop");
+    await handlePrototypes(stopped.ctx, stopped.workspace, "stop");
+
+    expect(running.stopCalls).toBe(1);
+    expect(running.notifications).toEqual([
+      ["Prototype server stopped — previously opened viewer URLs are now invalid.", "info"],
+    ]);
+    expect(stopped.stopCalls).toBe(1);
+    expect(stopped.notifications).toEqual([["Prototype server is not running.", "info"]]);
+  });
+
+  test("reports prototype server status without listing or opening a prototype", async () => {
+    const running = setup();
+    const stopped = setup({ serverStatus: { running: false } });
+
+    await handlePrototypes(running.ctx, running.workspace, "status");
+    await handlePrototypes(stopped.ctx, stopped.workspace, "status");
+
+    expect(running.statusCalls).toBe(1);
+    expect(running.notifications).toEqual([
+      ["Prototype server running on 127.0.0.1:4321.", "info"],
+    ]);
+    expect(stopped.statusCalls).toBe(1);
+    expect(stopped.notifications).toEqual([["Prototype server is not running.", "info"]]);
   });
 });

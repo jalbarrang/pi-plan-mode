@@ -161,6 +161,26 @@ describe("prototype workspace", () => {
     await expect(workspace.open({ plan: "demo-plan", slug: "missing" })).rejects.toThrow();
   });
 
+  test("starts, reports, and stops the server on demand", async () => {
+    const opened: string[] = [];
+    const workspace = createWorkspace((url) => opened.push(url));
+
+    expect(workspace.serverStatus()).toEqual({ running: false, port: undefined });
+    const started = await workspace.startServer();
+    expect(started.port).toBeGreaterThan(0);
+    expect(workspace.serverStatus()).toEqual({ running: true, port: started.port });
+    const first = await publish(workspace);
+    expect(opened).toEqual([first.url]);
+
+    expect(await workspace.stopServer()).toEqual({ wasRunning: true });
+    expect(workspace.serverStatus()).toEqual({ running: false, port: undefined });
+    expect(await workspace.stopServer()).toEqual({ wasRunning: false });
+
+    const second = await publish(workspace, { html: "<h1>second</h1>" });
+    expect(second.opened).toBe(true);
+    expect(opened).toEqual([first.url, second.url]);
+  });
+
   test("close is idempotent and a later publish starts a fresh server and reopens", async () => {
     const opened: string[] = [];
     const workspace = createWorkspace((url) => opened.push(url));

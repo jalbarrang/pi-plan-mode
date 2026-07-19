@@ -302,7 +302,8 @@ export default function planMode(pi: ExtensionAPI): void {
   });
 
   pi.registerCommand('prototypes', {
-    description: 'Open a persisted prototype in the live viewer. Usage: /prototypes [plan]',
+    description:
+      'Open a persisted prototype in the live viewer, or manage its server. Usage: /prototypes [plan | start | stop | status]',
     handler: async (args, ctx) => {
       await handlePrototypes(ctx, prototypeWorkspace, args);
     },

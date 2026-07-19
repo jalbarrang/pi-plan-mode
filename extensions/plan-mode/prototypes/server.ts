@@ -40,6 +40,7 @@ function matchesToken(candidate: string | undefined, token: string): boolean {
 
 export interface PrototypeServer {
   start(): Promise<void>;
+  port(): number | undefined;
   url(ref: { plan: string; slug: string }): string;
   notify(ref: { plan: string; slug: string }, latest: number): void;
   close(): Promise<void>;
@@ -206,6 +207,10 @@ export function createPrototypeServer(options: { runPlanIO: RunPlanIO }): Protot
       server = nextServer;
       port = address.port;
       server.unref();
+    },
+
+    port(): number | undefined {
+      return port;
     },
 
     url(ref): string {

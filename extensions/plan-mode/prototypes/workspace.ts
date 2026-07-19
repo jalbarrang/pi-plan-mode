@@ -40,6 +40,9 @@ export interface PrototypeWorkspace {
   }): Promise<PublishedPrototype>;
   list(plan?: string): Promise<PrototypeSummary[]>;
   open(ref: PrototypeRef): Promise<{ url: string }>;
+  startServer(): Promise<{ port: number }>;
+  stopServer(): Promise<{ wasRunning: boolean }>;
+  serverStatus(): { running: boolean; port?: number };
   close(): Promise<void>;
 }
 
@@ -112,6 +115,27 @@ export function createPrototypeWorkspace(options: {
     return `${ref.plan}/${ref.slug}`;
   }
 
+  function serverStatus(): { running: boolean; port?: number } {
+    return { running: Boolean(server), port: server?.port() };
+  }
+
+  async function stopServer(): Promise<{ wasRunning: boolean }> {
+    const wasRunning = Boolean(server || starting);
+    if (starting) {
+      try {
+        await starting;
+      } catch {
+        // The pending server never started; there is nothing to close.
+      }
+    }
+    openedRefs.clear();
+    if (!server) return { wasRunning };
+    const closing = server;
+    server = undefined;
+    await closing.close();
+    return { wasRunning };
+  }
+
   return {
     async publish(input): Promise<PublishedPrototype> {
       const plan = toKebabCase(input.plan);
@@ -155,19 +179,19 @@ export function createPrototypeWorkspace(options: {
       return { url };
     },
 
+    async startServer(): Promise<{ port: number }> {
+      const localServer = await ensureServer();
+      const port = localServer.port();
+      if (!port) throw new Error("Prototype server did not receive a loopback port");
+      return { port };
+    },
+
+    serverStatus,
+
+    stopServer,
+
     async close(): Promise<void> {
-      if (starting) {
-        try {
-          await starting;
-        } catch {
-          // The pending server never started; there is nothing to close.
-        }
-      }
-      openedRefs.clear();
-      if (!server) return;
-      const closing = server;
-      server = undefined;
-      await closing.close();
+      await stopServer();
     },
   };
 }

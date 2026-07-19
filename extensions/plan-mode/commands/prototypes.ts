@@ -8,6 +8,32 @@ export async function handlePrototypes(
   args: string | undefined,
 ): Promise<void> {
   const requestedPlan = args?.trim();
+  if (requestedPlan === "start") {
+    const { port } = await workspace.startServer();
+    ctx.ui.notify(`Prototype server running on 127.0.0.1:${port}.`, "info");
+    return;
+  }
+
+  if (requestedPlan === "stop") {
+    const { wasRunning } = await workspace.stopServer();
+    ctx.ui.notify(
+      wasRunning
+        ? "Prototype server stopped — previously opened viewer URLs are now invalid."
+        : "Prototype server is not running.",
+      "info",
+    );
+    return;
+  }
+
+  if (requestedPlan === "status") {
+    const { running, port } = workspace.serverStatus();
+    ctx.ui.notify(
+      running ? `Prototype server running on 127.0.0.1:${port}.` : "Prototype server is not running.",
+      "info",
+    );
+    return;
+  }
+
   const planFilter = requestedPlan ? toKebabCase(requestedPlan) : undefined;
 
   if (requestedPlan && !planFilter) {

@@ -64,6 +64,9 @@ function setup(result: PublishedPrototype | Error = published()) {
     },
     list: async () => [],
     open: async () => ({ url: "http://localhost/" }),
+    startServer: async () => ({ port: 1234 }),
+    stopServer: async () => ({ wasRunning: false }),
+    serverStatus: () => ({ running: false }),
     close: async () => {},
   };
   let tool: CapturedTool | undefined;
