@@ -1,5 +1,12 @@
 # @dreki-gg/pi-plan-mode
 
+## [0.33.0](https://github.com/jalbarrang/pi-plan-mode/compare/v0.32.0...v0.33.0) (2026-07-19)
+
+
+### Features
+
+* **prototypes:** add server lifecycle controls ([5c92616](https://github.com/jalbarrang/pi-plan-mode/commit/5c92616324179a12c766b441cc7dd13c103b0958))
+
 ## [0.32.0](https://github.com/jalbarrang/pi-plan-mode/compare/v0.31.0...v0.32.0) (2026-07-17)
 
 
