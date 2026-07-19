@@ -53,6 +53,29 @@ describe('submit_workflow', () => {
     expect(launches).toEqual([workflow]);
   });
 
+  test('accepts a workflow serialized as a JSON string', async () => {
+    const { tool, ctx, launches } = setup(['Run workflow']);
+    const result = await tool.execute('call', { workflow: JSON.stringify(workflow) }, undefined, undefined, ctx);
+    expect(result.content[0]?.text).toContain('wf_test');
+    expect(launches).toEqual([workflow]);
+  });
+
+  test('accepts a workflow serialized inside a fenced json block', async () => {
+    const { tool, ctx, launches } = setup(['Run workflow']);
+    const fenced = '```json\n' + JSON.stringify(workflow, null, 2) + '\n```';
+    const result = await tool.execute('call', { workflow: fenced }, undefined, undefined, ctx);
+    expect(result.content[0]?.text).toContain('wf_test');
+    expect(launches).toEqual([workflow]);
+  });
+
+  test('rejects a string parameter that is not valid JSON with an actionable message', async () => {
+    const { tool, ctx, launches } = setup(['Run workflow']);
+    const result = await tool.execute('call', { workflow: 'not json at all' }, undefined, undefined, ctx);
+    expect(result.isError).toBe(true);
+    expect(result.content[0]?.text).toContain('Pass the workflow as a JSON object');
+    expect(launches).toEqual([]);
+  });
+
   test('fails closed when interactive approval is unavailable', async () => {
     const { tool } = setup([]);
     const result = await tool.execute('call', { workflow }, undefined, undefined, { hasUI: false });

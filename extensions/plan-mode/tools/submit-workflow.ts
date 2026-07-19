@@ -13,6 +13,25 @@ export interface WorkflowLauncher {
   launch(workflow: WorkflowSpec): Promise<string>;
 }
 
+/**
+ * Models and providers routinely serialize the nested workflow object as a
+ * JSON string (sometimes fenced in ```json). The parameter is Type.Any, so
+ * that string reaches this tool unparsed — coerce it here instead of bouncing
+ * the call with "Workflow must be an object", which sends agents into a
+ * retry loop they cannot reason their way out of.
+ */
+function coerceWorkflowInput(input: unknown): { value: unknown; parseError?: string } {
+  if (typeof input !== 'string') return { value: input };
+  const trimmed = input.trim();
+  const fenced = /^```(?:json)?\s*([\s\S]*?)```$/.exec(trimmed);
+  const body = (fenced?.[1] ?? trimmed).trim();
+  try {
+    return { value: JSON.parse(body) };
+  } catch (error) {
+    return { value: input, parseError: error instanceof Error ? error.message : String(error) };
+  }
+}
+
 export function registerSubmitWorkflowTool(
   pi: ExtensionAPI,
   controller: WorkflowLauncher,
@@ -40,7 +59,21 @@ export function registerSubmitWorkflowTool(
         };
       }
 
-      let source: unknown = params.workflow;
+      const coerced = coerceWorkflowInput(params.workflow);
+      if (coerced.parseError) {
+        return {
+          content: [
+            {
+              type: 'text' as const,
+              text: `Workflow rejected: the workflow parameter arrived as a string that is not valid JSON (${coerced.parseError}). Pass the workflow as a JSON object with name, description, task, and chain.`,
+            },
+          ],
+          details: { rejected: true, reason: 'invalid-json' },
+          isError: true,
+        };
+      }
+
+      let source: unknown = coerced.value;
       while (true) {
         const validation = validateWorkflowSpec(source);
         if (!validation.valid || !validation.normalized || validation.maximumAgentCount === undefined) {
