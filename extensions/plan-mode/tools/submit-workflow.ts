@@ -7,7 +7,7 @@ import { Text } from '@earendil-works/pi-tui';
 import { Type } from 'typebox';
 import { WORKFLOW_DRAFTS_ROOT } from '../ledger.js';
 import { resolveWorkflowDraftFile } from '../utils.js';
-import { validateWorkflowSpec, workflowSummary, type WorkflowSpec } from '../workflow/spec.js';
+import { validateWorkflowSpec, workflowTable, type WorkflowSpec } from '../workflow/spec.js';
 
 export interface SubmitWorkflowCallbacks {
   onDraft: (workflow: WorkflowSpec) => void;
@@ -43,7 +43,7 @@ export function registerSubmitWorkflowTool(
     promptGuidelines: [
       'Use only after the user agrees with the workflow shape.',
       'Write the workflow JSON to the drafts folder first, then submit it by name.',
-      'The user reviews the exact JSON and can edit or cancel it before it launches.',
+      'The user reviews a phase table and can edit the exact JSON or cancel before launch.',
       'Every dynamic fan-out needs an earlier named output and maxItems.',
     ],
     parameters: Type.Object({
@@ -93,7 +93,15 @@ export function registerSubmitWorkflowTool(
         }
         const workflow = validation.normalized;
         callbacks.onDraft(workflow);
-        const preview = `${workflowSummary(workflow, validation.maximumAgentCount)}\n\nExact workflow JSON:\n${JSON.stringify(workflow, null, 2)}`;
+        const preview = [
+          `Workflow: ${workflow.name}`,
+          workflow.description,
+          `Maximum agents: ${validation.maximumAgentCount}`,
+          '',
+          workflowTable(workflow),
+          '',
+          `Full JSON: ${path} — choose "Edit JSON" to view or modify the exact spec.`,
+        ].join('\n');
         const choice = await ctx.ui.select(`${preview}\n\nApprove background workflow?`, [
           'Run workflow',
           'Edit JSON',

@@ -231,6 +231,52 @@ export function phaseLabel(step: WorkflowStep, index: number): string {
   return step.label ?? `Phase ${index + 1}`;
 }
 
+function truncate(text: string, max: number): string {
+  const flat = text.replace(/\s+/g, ' ').trim();
+  return flat.length <= max ? flat : `${flat.slice(0, max - 1)}…`;
+}
+
+/**
+ * Compact plain-text phase table for the approval dialog. The select prompt
+ * cannot scroll, so the full JSON is never dumped there — it lives in the
+ * draft file and in the Edit JSON editor. One row per agent; parallel
+ * children share their phase number.
+ */
+export function workflowTable(spec: WorkflowSpec): string {
+  const header = ['#', 'Phase', 'Agent', 'Output', 'Task'];
+  const rows: string[][] = [];
+  spec.chain.forEach((step, index) => {
+    const phase = truncate(phaseLabel(step, index), 24);
+    if ('agent' in step) {
+      rows.push([String(index + 1), phase, step.agent, step.as ?? '—', truncate(step.task, 48)]);
+      return;
+    }
+    if ('expand' in step) {
+      rows.push([
+        String(index + 1),
+        phase,
+        `${step.parallel.agent} ×≤${step.expand.maxItems}`,
+        step.collect.as,
+        truncate(step.parallel.task, 48),
+      ]);
+      return;
+    }
+    step.parallel.forEach((child, childIndex) => {
+      rows.push([
+        childIndex === 0 ? String(index + 1) : '',
+        childIndex === 0 ? phase : '',
+        child.agent,
+        child.as ?? '—',
+        truncate(child.task, 48),
+      ]);
+    });
+  });
+  const widths = header.map((cell, col) => Math.max(cell.length, ...rows.map((row) => row[col].length)));
+  const line = (cells: string[]) => cells.map((cell, col) => cell.padEnd(widths[col])).join('  ').trimEnd();
+  const divider = widths.map((width) => '─'.repeat(width)).join('──');
+  return [line(header), divider, ...rows.map(line)].join('\n');
+}
+
 export function workflowSummary(spec: WorkflowSpec, maximumAgentCount: number): string {
   return [
     `Workflow: ${spec.name}`,
