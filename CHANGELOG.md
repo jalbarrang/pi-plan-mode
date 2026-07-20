@@ -1,5 +1,13 @@
 # @dreki-gg/pi-plan-mode
 
+## [0.37.0](https://github.com/jalbarrang/pi-plan-mode/compare/v0.36.0...v0.37.0) (2026-07-20)
+
+
+### Features
+
+* **workflow:** live progress widget with spinner, phase checklist, and elapsed time ([9fd0e21](https://github.com/jalbarrang/pi-plan-mode/commit/9fd0e212215a768bc47dcab009861081bb44a68d))
+* **workflow:** show a phase table in the approval dialog instead of raw JSON ([7006c9f](https://github.com/jalbarrang/pi-plan-mode/commit/7006c9f1cbdb4ea0a0493546dc900c4adfa1a06d))
+
 ## [0.36.0](https://github.com/jalbarrang/pi-plan-mode/compare/v0.35.0...v0.36.0) (2026-07-20)
 
 
