@@ -1,5 +1,16 @@
 # @dreki-gg/pi-plan-mode
 
+## [0.36.0](https://github.com/jalbarrang/pi-plan-mode/compare/v0.35.0...v0.36.0) (2026-07-20)
+
+
+### ⚠ BREAKING CHANGES
+
+* **workflow:** submit_workflow no longer accepts an inline workflow object; pass a draft name or path under the workflow drafts folder.
+
+### Features
+
+* **workflow:** submit_workflow takes a draft file instead of inline JSON ([8942943](https://github.com/jalbarrang/pi-plan-mode/commit/8942943ec35b2e3d6a2d5d95bc5c13db0da652e1))
+
 ## [0.35.0](https://github.com/jalbarrang/pi-plan-mode/compare/v0.34.2...v0.35.0) (2026-07-20)
 
 
