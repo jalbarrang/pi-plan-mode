@@ -1,5 +1,12 @@
 # @dreki-gg/pi-plan-mode
 
+## [0.35.0](https://github.com/jalbarrang/pi-plan-mode/compare/v0.34.2...v0.35.0) (2026-07-20)
+
+
+### Features
+
+* **workflow:** ambient status for background workflow runs ([d24b552](https://github.com/jalbarrang/pi-plan-mode/commit/d24b552fd9c3ceac8c933d7426aabba5d11f540c))
+
 ## [0.34.2](https://github.com/jalbarrang/pi-plan-mode/compare/v0.34.1...v0.34.2) (2026-07-19)
 
 
