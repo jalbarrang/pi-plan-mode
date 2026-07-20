@@ -1,5 +1,12 @@
 # @dreki-gg/pi-plan-mode
 
+## [0.37.1](https://github.com/jalbarrang/pi-plan-mode/compare/v0.37.0...v0.37.1) (2026-07-20)
+
+
+### Bug Fixes
+
+* **workflow:** stop /workflow prose starting with run/save from matching subcommands ([72ef392](https://github.com/jalbarrang/pi-plan-mode/commit/72ef392799b8d41ac8e2cf23c35d168281036a82))
+
 ## [0.37.0](https://github.com/jalbarrang/pi-plan-mode/compare/v0.36.0...v0.37.0) (2026-07-20)
 
 
