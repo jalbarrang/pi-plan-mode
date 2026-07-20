@@ -1,4 +1,6 @@
+import { resolve } from 'node:path';
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
+import { WORKFLOW_RUNS_ROOT } from '../ledger.js';
 import type { PlanModeState } from '../state.js';
 import { SubagentWorkflowRpc, type WorkflowRunSnapshot } from './subagents-rpc.js';
 import type { WorkflowSpec } from './spec.js';
@@ -54,7 +56,7 @@ export class WorkflowModeController {
 
   async launch(workflow: WorkflowSpec): Promise<string> {
     await this.verifyEngine();
-    const result = await this.rpc.spawn(workflow);
+    const result = await this.rpc.spawn(workflow, { runsDir: resolve(WORKFLOW_RUNS_ROOT) });
     this.state.workflow = { draft: workflow, runId: result.id, launchedAt: new Date().toISOString() };
     this.state.persist(this.pi);
     this.announceEligible = true;

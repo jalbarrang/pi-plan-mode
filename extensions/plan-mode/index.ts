@@ -49,6 +49,7 @@ import { reconcileInitiativeForPlan } from '@dreki-gg/taskman';
 import { collectPlanDrift } from '@dreki-gg/taskman';
 import { registerSubmitPlanTool } from './tools/submit-plan.js';
 import { registerSubmitWorkflowTool } from './tools/submit-workflow.js';
+import { registerWorkflowStatusTool } from './tools/workflow-status.js';
 import { registerSubmitInitiativeTool } from './tools/submit-initiative.js';
 import { registerRevisePlanTool } from './tools/revise-plan.js';
 import { registerPreviewPrototypeTool } from './tools/preview-prototype.js';
@@ -113,6 +114,7 @@ export default function planMode(pi: ExtensionAPI): void {
       state.persist(pi);
     },
   });
+  registerWorkflowStatusTool(pi);
 
   registerRevisePlanTool(pi, runPlanIO, {
     resolvePlan: (opts) => resolveActivePlan(state, pi, runPlanIO, opts),

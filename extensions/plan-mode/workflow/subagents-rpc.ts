@@ -23,6 +23,8 @@ export interface WorkflowRunSnapshot {
   status: 'running' | 'completed' | 'failed' | 'stopped';
   startedAt?: string;
   finishedAt?: string;
+  updatedAt?: string;
+  workflow?: { name?: string; description?: string };
   phases: Array<{
     label: string;
     status: string;
@@ -64,8 +66,8 @@ export class SubagentWorkflowRpc {
     await this.request('ping');
   }
 
-  async spawn(workflow: WorkflowSpec): Promise<{ id: string }> {
-    const data = await this.request('spawn', { workflow });
+  async spawn(workflow: WorkflowSpec, options: { runsDir?: string } = {}): Promise<{ id: string }> {
+    const data = await this.request('spawn', { workflow, ...options });
     if (!data || typeof data !== 'object' || typeof (data as { id?: unknown }).id !== 'string') {
       throw new Error('pi-subagent returned an invalid workflow launch response.');
     }

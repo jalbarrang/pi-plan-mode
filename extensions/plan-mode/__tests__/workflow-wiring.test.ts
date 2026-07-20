@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import planMode from '../index.js';
+import { PLAN_TOOLS, EXEC_TOOLS, WORKFLOW_TOOLS } from '../constants.js';
 
 describe('workflow root wiring', () => {
   test('registers the workflow command, approval tool, and lifecycle hooks once', () => {
@@ -16,9 +17,16 @@ describe('workflow root wiring', () => {
     planMode(pi as never);
     expect(commands).toContain('workflow');
     expect(tools).toContain('submit_workflow');
+    expect(tools).toContain('workflow_status');
     expect(events).toContain('before_agent_start');
     expect(events).toContain('tool_call');
     expect(events).toContain('session_start');
+  });
+
+  test('workflow_status survives every mode tool-set (validator finding: plan/exec stripped it)', () => {
+    expect(PLAN_TOOLS).toContain('workflow_status');
+    expect(EXEC_TOOLS).toContain('workflow_status');
+    expect(WORKFLOW_TOOLS).toContain('workflow_status');
   });
 
   test('blocks direct subagent launches and product writes while permitting workflow drafts', async () => {
@@ -47,10 +55,12 @@ describe('workflow root wiring', () => {
 
     const guard = events.get('tool_call')!;
     const subagent = await guard({ toolName: 'subagent', input: {} }, ctx);
+    const workflowStatus = await guard({ toolName: 'workflow_status', input: {} }, ctx);
     const write = await guard({ toolName: 'write', input: { path: 'src/index.ts' } }, ctx);
     const draftWrite = await guard({ toolName: 'write', input: { path: '.taskman/workflows/audit-routes.json' } }, ctx);
     const draftEdit = await guard({ toolName: 'edit', input: { path: '.taskman/workflows/audit-routes.json' } }, ctx);
     expect(subagent).toMatchObject({ block: true });
+    expect(workflowStatus).toBeUndefined();
     expect(write).toMatchObject({ block: true });
     expect((write as { reason: string }).reason).toContain('.taskman/workflows');
     expect(draftWrite).toBeUndefined();

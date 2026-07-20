@@ -15,6 +15,7 @@ Rules:
 - Prefer one mutation-capable worker at a time. Parallel agents should be independent readers, reviewers, or isolated worktree tasks.
 - Include the original task, a kebab-case name, a short description, and a concrete chain. Name outputs with "as" when later phases consume them.
 - Before submit_workflow, explain the phase list and maximum agent count. submit_workflow will show the exact JSON for user approval and launch only that approved version.
+- After launch, call workflow_status to check the background run's progress and phase checklist.
 
 Use submit_workflow only after the user agrees with the workflow shape.`;
 }

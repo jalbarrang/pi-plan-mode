@@ -59,6 +59,7 @@ pi install npm:@dreki-gg/pi-subagent
 | Tool     | `initiative_status` | Snapshot an initiative: member plans, progress, ready/blocked |
 | Tool     | `reconcile_plans` | Detect & repair drift between tasks.jsonl and the registry (plans **and** initiatives) |
 | Tool     | `submit_workflow` | Validate, inspect/edit, approve, and launch a bounded workflow |
+| Tool     | `workflow_status` | Read live or persisted workflow run progress and phase checklists |
 
 ## Dynamic Workflow Mode
 
@@ -67,7 +68,7 @@ pi install npm:@dreki-gg/pi-subagent
 1. The agent investigates and proposes a declarative workflow.
 2. The agent writes the workflow JSON to `.taskman/workflows/<name>.json`, then calls `submit_workflow` with `file: "<name>"`. The inline `workflow` object is no longer accepted.
 3. `submit_workflow` loads and validates that draft, shows the exact JSON, and requires your explicit approval.
-4. The approved version launches in the background with **ambient progress**: a live widget below the editor shows a spinner, phase checklist, and elapsed time (plus agent counts when the pi-subagent bridge reports them), while a footer indicator (`⚙ wf 3/9 <phase>`) polls the run every few seconds. The terminal state (completed / failed / stopped) is announced into the conversation with the phase list and a final-output snippet — no manual polling needed. `/workflow status`, `/workflow stop`, and `/workflow resume` still control and inspect the run on demand.
+4. The approved version launches in the background with **ambient progress**: a live widget below the editor shows a spinner, phase checklist, and elapsed time (plus agent counts when the pi-subagent bridge reports them), while a footer indicator (`⚙ wf 3/9 <phase>`) polls the run every few seconds. The terminal state (completed / failed / stopped) is announced into the conversation with the phase list and a final-output snippet — no manual polling needed. `/workflow status`, `/workflow stop`, and `/workflow resume` still control and inspect the run on demand. The runner also mirrors snapshots to `.taskman/workflows/runs/`, so agents can call `workflow_status` for live progress or persisted recovery after a Pi restart.
 5. Workflow drafts in `.taskman/workflows/` are temporary and gitignored. `/workflow save` still stores a reviewed workflow in `.pi/chains/<name>.chain.json` (project) or `~/.pi/agent/chains/<name>.chain.json` (user); `/workflow run` still replays it.
 
 The workflow format is intentionally bounded: sequential agent steps, static parallel groups, and dynamic fan-out from an earlier named JSON output. Every fan-out must declare `maxItems`; the validator rejects workflows whose static worst case exceeds 100 agents. Product writes remain blocked until the approved background run starts.

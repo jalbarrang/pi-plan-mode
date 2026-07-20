@@ -141,7 +141,8 @@ describe('buildWorkflowModePrompt', () => {
 
   test('allows draft writes and teaches the file-based submission flow', () => {
     const prompt = buildWorkflowModePrompt();
-    expect(WORKFLOW_TOOLS).toEqual(expect.arrayContaining(['write', 'edit']));
+    expect(WORKFLOW_TOOLS).toEqual(expect.arrayContaining(['write', 'edit', 'workflow_status']));
+    expect(prompt).toContain('workflow_status');
     expect(prompt).toContain('.taskman/workflows/<name>.json');
     expect(prompt).toContain('file: "<name>"');
     expect(prompt).toContain('Bash is read-only');

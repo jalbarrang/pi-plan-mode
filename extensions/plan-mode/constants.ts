@@ -23,6 +23,7 @@ export const PLAN_TOOLS = [
   'update_initiative',
   'initiative_status',
   'reconcile_plans',
+  'workflow_status',
 ];
 
 export const EXEC_TOOLS = [
@@ -39,6 +40,7 @@ export const EXEC_TOOLS = [
   'update_initiative',
   'initiative_status',
   'reconcile_plans',
+  'workflow_status',
 ];
 
 /** Read-only workflow-design surface. Launches are owned by submit_workflow. */
@@ -54,6 +56,7 @@ export const WORKFLOW_TOOLS = [
   'write',
   'edit',
   'submit_workflow',
+  'workflow_status',
 ];
 
 // ── Exec-pending marker file name ────────────────────────────────────────────

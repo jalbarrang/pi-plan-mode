@@ -38,6 +38,20 @@ describe('SubagentWorkflowRpc', () => {
     await expect(rpc.spawn(workflow)).resolves.toEqual({ id: 'wf_test' });
   });
 
+  test('passes the optional runs directory to the spawn RPC request', async () => {
+    let spawnParams: unknown;
+    const bus = createBus();
+    const emit = bus.emit.bind(bus);
+    bus.emit = (topic, payload) => {
+      if (topic === 'subagents:rpc:v1:request' && (payload as { method?: string }).method === 'spawn') {
+        spawnParams = (payload as { params?: unknown }).params;
+      }
+      emit(topic, payload);
+    };
+    await new SubagentWorkflowRpc(bus).spawn(workflow, { runsDir: '/tmp/workflow-runs' });
+    expect(spawnParams).toEqual({ workflow, runsDir: '/tmp/workflow-runs' });
+  });
+
   test('fails with an actionable install error when no bridge is registered', async () => {
     const rpc = new SubagentWorkflowRpc(undefined, 1);
     await expect(rpc.ping()).rejects.toBeInstanceOf(SubagentWorkflowUnavailableError);
