@@ -1,5 +1,12 @@
 # @dreki-gg/pi-plan-mode
 
+## [0.38.0](https://github.com/jalbarrang/pi-plan-mode/compare/v0.37.1...v0.38.0) (2026-07-20)
+
+
+### Features
+
+* **workflow:** agent-callable workflow_status tool backed by mirrored run files ([d295b19](https://github.com/jalbarrang/pi-plan-mode/commit/d295b19d36a551c8c9bedc3f25ed01970c539792))
+
 ## [0.37.1](https://github.com/jalbarrang/pi-plan-mode/compare/v0.37.0...v0.37.1) (2026-07-20)
 
 
