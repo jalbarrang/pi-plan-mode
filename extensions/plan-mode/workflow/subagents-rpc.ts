@@ -21,7 +21,16 @@ export interface RpcBus {
 export interface WorkflowRunSnapshot {
   id: string;
   status: 'running' | 'completed' | 'failed' | 'stopped';
-  phases: Array<{ label: string; status: string; output?: string }>;
+  startedAt?: string;
+  finishedAt?: string;
+  phases: Array<{
+    label: string;
+    status: string;
+    output?: string;
+    startedAt?: string;
+    finishedAt?: string;
+    agents?: { done: number; total: number };
+  }>;
   error?: string;
 }
 

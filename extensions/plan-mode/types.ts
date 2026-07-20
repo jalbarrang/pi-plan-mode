@@ -28,6 +28,8 @@ export interface WorkflowSessionState {
   draft?: unknown;
   /** Most recent background run in the current Pi process. */
   runId?: string;
+  /** Client-side launch time, used for elapsed progress when the engine omits it. */
+  launchedAt?: string;
 }
 
 export interface PersistedState {
