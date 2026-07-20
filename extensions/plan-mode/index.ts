@@ -776,6 +776,10 @@ export default function planMode(pi: ExtensionAPI): void {
       ctx.sessionManager.getEntries() as Array<{ type: string; customType?: string; data?: any }>,
     );
 
+    // Ambient status for background workflow runs (⚙ wf 3/9 … in the footer).
+    // After restore so a run attached to this session resumes its watcher.
+    workflowController.attachUI(ctx.ui);
+
     // Register `@plan:<slug>` autocomplete and warm its cache.
     await planReferenceIndex.refresh();
     registerPlanReferenceAutocomplete(ctx, planReferenceIndex);

@@ -66,7 +66,7 @@ pi install npm:@dreki-gg/pi-subagent
 
 1. The agent investigates and proposes a declarative workflow.
 2. `submit_workflow` validates it, shows the exact JSON, and requires your explicit approval.
-3. The approved version launches in the background. `/workflow status`, `/workflow stop`, and `/workflow resume` control that run.
+3. The approved version launches in the background with **ambient progress**: a footer indicator (`⚙ wf 3/9 <phase>`) polls the run every few seconds, and the terminal state (completed / failed / stopped) is announced into the conversation with the phase list and a final-output snippet — no manual polling needed. `/workflow status`, `/workflow stop`, and `/workflow resume` still control and inspect the run on demand.
 4. `/workflow save` stores a reviewed workflow in `.pi/chains/<name>.chain.json` (project) or `~/.pi/agent/chains/<name>.chain.json` (user); `/workflow run` replays it.
 
 The workflow format is intentionally bounded: sequential agent steps, static parallel groups, and dynamic fan-out from an earlier named JSON output. Every fan-out must declare `maxItems`; the validator rejects workflows whose static worst case exceeds 100 agents. Product writes remain blocked until the approved background run starts.
@@ -290,6 +290,7 @@ jobs:
 
 - `📝 plan` — plan mode active (opus-4-6:medium, strict bash)
 - `📋 exec 2/5` — executing plan with gpt-5.5:low, 2 of 5 steps done
+- `⚙ wf 3/9 <phase>` — background workflow running, updates every few seconds; flips to `✓ wf completed 9/9` / `✗ wf failed` / `◼ wf stopped` at the end
 
 ## Bash safety
 
