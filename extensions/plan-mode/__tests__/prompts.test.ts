@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { buildPlanModePrompt, buildExecutionPrompt } from '../prompts.js';
-import { PLAN_TOOLS } from '../constants.js';
+import { PLAN_TOOLS, WORKFLOW_TOOLS } from '../constants.js';
 import type { PlanData, TaskRecord } from '../types.js';
 import { buildWorkflowModePrompt } from '../workflow/prompt.js';
 
@@ -137,5 +137,13 @@ describe('buildWorkflowModePrompt', () => {
     expect(prompt).toContain('submit_workflow');
     expect(prompt).toContain('maxItems');
     expect(prompt).toMatch(/approval-and-launch/i);
+  });
+
+  test('allows draft writes and teaches the file-based submission flow', () => {
+    const prompt = buildWorkflowModePrompt();
+    expect(WORKFLOW_TOOLS).toEqual(expect.arrayContaining(['write', 'edit']));
+    expect(prompt).toContain('.taskman/workflows/<name>.json');
+    expect(prompt).toContain('file: "<name>"');
+    expect(prompt).toContain('Bash is read-only');
   });
 });

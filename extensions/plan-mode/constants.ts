@@ -51,6 +51,8 @@ export const WORKFLOW_TOOLS = [
   'subagent',
   'list_agents',
   'search_skills',
+  'write',
+  'edit',
   'submit_workflow',
 ];
 

@@ -16,11 +16,14 @@
  * `makePlanRuntime(PLANS_ROOT)`, and (b) render user-facing paths.
  */
 
-import { resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { resolveLedgerRoot } from '@dreki-gg/taskman';
 
 /** The ledger folder (contains `plans.jsonl` directly). May be relative to cwd. */
 export const PLANS_ROOT: string = resolveLedgerRoot().root;
+
+/** Temporal, gitignored one-shot workflow JSON drafts, distinct from saved `.pi/chains/` workflows. */
+export const WORKFLOW_DRAFTS_ROOT: string = join(dirname(PLANS_ROOT), 'workflows');
 
 /** User-facing path for a plan/initiative directory inside the ledger. */
 export function plansPath(...segments: string[]): string {

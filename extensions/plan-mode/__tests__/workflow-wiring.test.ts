@@ -21,7 +21,7 @@ describe('workflow root wiring', () => {
     expect(events).toContain('session_start');
   });
 
-  test('blocks direct subagent launches and writes while workflow design is active', async () => {
+  test('blocks direct subagent launches and product writes while permitting workflow drafts', async () => {
     const commands = new Map<string, { handler: (args: string, ctx: unknown) => Promise<void> }>();
     const events = new Map<string, (event: unknown, ctx: unknown) => Promise<unknown>>();
     const pi = {
@@ -48,7 +48,12 @@ describe('workflow root wiring', () => {
     const guard = events.get('tool_call')!;
     const subagent = await guard({ toolName: 'subagent', input: {} }, ctx);
     const write = await guard({ toolName: 'write', input: { path: 'src/index.ts' } }, ctx);
+    const draftWrite = await guard({ toolName: 'write', input: { path: '.taskman/workflows/audit-routes.json' } }, ctx);
+    const draftEdit = await guard({ toolName: 'edit', input: { path: '.taskman/workflows/audit-routes.json' } }, ctx);
     expect(subagent).toMatchObject({ block: true });
     expect(write).toMatchObject({ block: true });
+    expect((write as { reason: string }).reason).toContain('.taskman/workflows');
+    expect(draftWrite).toBeUndefined();
+    expect(draftEdit).toBeUndefined();
   });
 });

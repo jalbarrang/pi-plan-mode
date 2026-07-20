@@ -65,9 +65,10 @@ pi install npm:@dreki-gg/pi-subagent
 `/workflow <task>` is a read-only design mode for large, parallelizable work. It mirrors the core loop of Claude Code dynamic workflows while using `@dreki-gg/pi-subagent` as the runner:
 
 1. The agent investigates and proposes a declarative workflow.
-2. `submit_workflow` validates it, shows the exact JSON, and requires your explicit approval.
-3. The approved version launches in the background with **ambient progress**: a footer indicator (`⚙ wf 3/9 <phase>`) polls the run every few seconds, and the terminal state (completed / failed / stopped) is announced into the conversation with the phase list and a final-output snippet — no manual polling needed. `/workflow status`, `/workflow stop`, and `/workflow resume` still control and inspect the run on demand.
-4. `/workflow save` stores a reviewed workflow in `.pi/chains/<name>.chain.json` (project) or `~/.pi/agent/chains/<name>.chain.json` (user); `/workflow run` replays it.
+2. The agent writes the workflow JSON to `.taskman/workflows/<name>.json`, then calls `submit_workflow` with `file: "<name>"`. The inline `workflow` object is no longer accepted.
+3. `submit_workflow` loads and validates that draft, shows the exact JSON, and requires your explicit approval.
+4. The approved version launches in the background with **ambient progress**: a footer indicator (`⚙ wf 3/9 <phase>`) polls the run every few seconds, and the terminal state (completed / failed / stopped) is announced into the conversation with the phase list and a final-output snippet — no manual polling needed. `/workflow status`, `/workflow stop`, and `/workflow resume` still control and inspect the run on demand.
+5. Workflow drafts in `.taskman/workflows/` are temporary and gitignored. `/workflow save` still stores a reviewed workflow in `.pi/chains/<name>.chain.json` (project) or `~/.pi/agent/chains/<name>.chain.json` (user); `/workflow run` still replays it.
 
 The workflow format is intentionally bounded: sequential agent steps, static parallel groups, and dynamic fan-out from an earlier named JSON output. Every fan-out must declare `maxItems`; the validator rejects workflows whose static worst case exceeds 100 agents. Product writes remain blocked until the approved background run starts.
 

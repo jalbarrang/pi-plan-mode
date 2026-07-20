@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { isSafeCommand, isPlanPath } from '../utils.js';
+import { isSafeCommand, isPlanPath, isWorkflowDraftPath, resolveWorkflowDraftFile } from '../utils.js';
 import { nextTaskId } from '@dreki-gg/taskman';
 
 describe('nextTaskId', () => {
@@ -161,6 +161,38 @@ describe('isSafeCommand', () => {
     test('rm --help is still blocked', () => {
       expect(isSafeCommand('rm --help')).toBe(false);
     });
+  });
+});
+
+describe('isWorkflowDraftPath', () => {
+  test('accepts relative and windows-style draft paths', () => {
+    expect(isWorkflowDraftPath('.taskman/workflows/audit-routes.json')).toBe(true);
+    expect(isWorkflowDraftPath('.taskman\\workflows\\audit-routes.json')).toBe(true);
+  });
+
+  test('rejects paths outside the drafts root', () => {
+    expect(isWorkflowDraftPath('src/audit-routes.json')).toBe(false);
+  });
+});
+
+describe('resolveWorkflowDraftFile', () => {
+  const root = '/tmp/workflows';
+
+  test('resolves a bare kebab-case name to a draft file', () => {
+    expect(resolveWorkflowDraftFile('audit-routes', root)).toBe('/tmp/workflows/audit-routes.json');
+  });
+
+  test('resolves a bare name that already carries the .json extension', () => {
+    expect(resolveWorkflowDraftFile('audit-routes.json', root)).toBe('/tmp/workflows/audit-routes.json');
+  });
+
+  test('accepts an explicit path inside the drafts root', () => {
+    expect(resolveWorkflowDraftFile('/tmp/workflows/audit-routes.json', root)).toBe('/tmp/workflows/audit-routes.json');
+  });
+
+  test('rejects path escapes and invalid names', () => {
+    expect(() => resolveWorkflowDraftFile('../evil', root)).toThrow('escapes');
+    expect(() => resolveWorkflowDraftFile('Not-Kebab', root)).toThrow('kebab-case');
   });
 });
 

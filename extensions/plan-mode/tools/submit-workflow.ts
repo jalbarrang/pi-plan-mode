@@ -1,8 +1,12 @@
 /** Approval gate for a model-authored declarative workflow. */
 
+import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
+import { dirname } from 'node:path';
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
 import { Text } from '@earendil-works/pi-tui';
 import { Type } from 'typebox';
+import { WORKFLOW_DRAFTS_ROOT } from '../ledger.js';
+import { resolveWorkflowDraftFile } from '../utils.js';
 import { validateWorkflowSpec, workflowSummary, type WorkflowSpec } from '../workflow/spec.js';
 
 export interface SubmitWorkflowCallbacks {
@@ -13,42 +17,37 @@ export interface WorkflowLauncher {
   launch(workflow: WorkflowSpec): Promise<string>;
 }
 
-/**
- * Models and providers routinely serialize the nested workflow object as a
- * JSON string (sometimes fenced in ```json). The parameter is Type.Any, so
- * that string reaches this tool unparsed — coerce it here instead of bouncing
- * the call with "Workflow must be an object", which sends agents into a
- * retry loop they cannot reason their way out of.
- */
-function coerceWorkflowInput(input: unknown): { value: unknown; parseError?: string } {
-  if (typeof input !== 'string') return { value: input };
-  const trimmed = input.trim();
-  const fenced = /^```(?:json)?\s*([\s\S]*?)```$/.exec(trimmed);
-  const body = (fenced?.[1] ?? trimmed).trim();
-  try {
-    return { value: JSON.parse(body) };
-  } catch (error) {
-    return { value: input, parseError: error instanceof Error ? error.message : String(error) };
-  }
+export interface SubmitWorkflowOptions {
+  draftsRoot?: string;
+}
+
+async function saveDraft(path: string, workflow: WorkflowSpec): Promise<void> {
+  await mkdir(dirname(path), { recursive: true });
+  const temporary = `${path}.${process.pid}.${Date.now()}.tmp`;
+  await writeFile(temporary, `${JSON.stringify(workflow, null, 2)}\n`, { encoding: 'utf8', mode: 0o600 });
+  await rename(temporary, path);
 }
 
 export function registerSubmitWorkflowTool(
   pi: ExtensionAPI,
   controller: WorkflowLauncher,
   callbacks: SubmitWorkflowCallbacks,
+  options: SubmitWorkflowOptions = {},
 ): void {
+  const draftsRoot = options.draftsRoot ?? WORKFLOW_DRAFTS_ROOT;
   pi.registerTool({
     name: 'submit_workflow',
     label: 'Submit Workflow',
-    description: 'Validate, show, edit, and explicitly approve a bounded background workflow before launch.',
-    promptSnippet: 'Submit a workflow for user review and explicit approval',
+    description: 'Load a workflow draft file, validate and preview it, then explicitly approve its background launch.',
+    promptSnippet: 'Write the workflow JSON to the drafts folder first, then submit it by name for user review and approval',
     promptGuidelines: [
       'Use only after the user agrees with the workflow shape.',
+      'Write the workflow JSON to the drafts folder first, then submit it by name.',
       'The user reviews the exact JSON and can edit or cancel it before it launches.',
       'Every dynamic fan-out needs an earlier named output and maxItems.',
     ],
     parameters: Type.Object({
-      workflow: Type.Any({ description: 'Declarative workflow object with name, description, task, and chain phases.' }),
+      file: Type.String({ description: 'Draft name (kebab) or path under the workflow drafts folder, e.g. "my-run" for .taskman/workflows/my-run.json.' }),
     }),
     async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
       if (!ctx?.hasUI) {
@@ -59,21 +58,30 @@ export function registerSubmitWorkflowTool(
         };
       }
 
-      const coerced = coerceWorkflowInput(params.workflow);
-      if (coerced.parseError) {
+      let path: string;
+      try {
+        path = resolveWorkflowDraftFile(params.file, draftsRoot);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
         return {
-          content: [
-            {
-              type: 'text' as const,
-              text: `Workflow rejected: the workflow parameter arrived as a string that is not valid JSON (${coerced.parseError}). Pass the workflow as a JSON object with name, description, task, and chain.`,
-            },
-          ],
-          details: { rejected: true, reason: 'invalid-json' },
+          content: [{ type: 'text' as const, text: `Workflow rejected: ${message}` }],
+          details: { rejected: true, reason: 'invalid-draft-path' },
           isError: true,
         };
       }
 
-      let source: unknown = coerced.value;
+      let source: unknown;
+      try {
+        source = JSON.parse(await readFile(path, 'utf8'));
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        return {
+          content: [{ type: 'text' as const, text: `Workflow rejected: unable to read workflow draft at ${path} (${message}). Write the workflow JSON there with the write tool, then resubmit.` }],
+          details: { rejected: true, reason: 'invalid-draft-file', path },
+          isError: true,
+        };
+      }
+
       while (true) {
         const validation = validateWorkflowSpec(source);
         if (!validation.valid || !validation.normalized || validation.maximumAgentCount === undefined) {
@@ -107,10 +115,11 @@ export function registerSubmitWorkflowTool(
           }
           try {
             source = JSON.parse(edited);
+            await saveDraft(path, source as WorkflowSpec);
           } catch (error) {
             const message = error instanceof Error ? error.message : String(error);
             return {
-              content: [{ type: 'text' as const, text: `Workflow rejected: edited JSON is invalid (${message}).` }],
+              content: [{ type: 'text' as const, text: `Workflow rejected: edited JSON is invalid or could not be saved at ${path} (${message}).` }],
               details: { rejected: true, reason: 'invalid-json' },
               isError: true,
             };
@@ -139,8 +148,8 @@ export function registerSubmitWorkflowTool(
       }
     },
     renderCall(args, theme) {
-      const name = ((args as { workflow?: { name?: string } }).workflow?.name ?? 'workflow') as string;
-      return new Text(theme.fg('toolTitle', theme.bold('submit_workflow ')) + theme.fg('accent', name), 0, 0);
+      const file = ((args as { file?: string }).file ?? 'workflow') as string;
+      return new Text(theme.fg('toolTitle', theme.bold('submit_workflow ')) + theme.fg('accent', file), 0, 0);
     },
     renderResult(result, _options, theme) {
       const details = result.details as { runId?: string; cancelled?: boolean } | undefined;

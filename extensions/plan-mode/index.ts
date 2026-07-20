@@ -62,8 +62,8 @@ import { registerUpdatePlanTool } from './tools/update-plan.js';
 import { registerUpdateInitiativeTool } from './tools/update-initiative.js';
 import { registerInitiativeStatusTool } from './tools/initiative-status.js';
 import { registerReconcilePlansTool } from './tools/reconcile-plans.js';
-import { isSafeCommand, isPlanPath } from './utils.js';
-import { PLANS_ROOT } from './ledger.js';
+import { isSafeCommand, isPlanPath, isWorkflowDraftPath } from './utils.js';
+import { PLANS_ROOT, WORKFLOW_DRAFTS_ROOT } from './ledger.js';
 import { handleListPlans } from './commands/list-plans.js';
 import { handlePrototypes } from './commands/prototypes.js';
 import { handleListInitiatives } from './commands/list-initiatives.js';
@@ -506,14 +506,14 @@ export default function planMode(pi: ExtensionAPI): void {
       };
     }
 
-    // Workflow mode permits no writes. Plan mode permits plan-ledger writes.
+    // Workflow mode permits draft writes only. Plan mode permits plan-ledger writes.
     if (event.toolName === 'write' || event.toolName === 'edit') {
       const path = event.input.path as string;
-      if (state.workflowEnabled || !isPlanPath(path)) {
+      if (state.workflowEnabled ? !isWorkflowDraftPath(path) : !isPlanPath(path)) {
         return {
           block: true,
           reason: state.workflowEnabled
-            ? `Workflow mode: writes are blocked until the approved workflow runs.\nPath: ${path}`
+            ? `Workflow mode: writes are restricted to the ${WORKFLOW_DRAFTS_ROOT}/ drafts folder only.\nPath: ${path}`
             : `Plan mode: writes are restricted to the ${PLANS_ROOT}/ directory only.\nPath: ${path}`,
         };
       }
