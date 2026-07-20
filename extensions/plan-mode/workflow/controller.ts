@@ -141,8 +141,9 @@ export class WorkflowModeController {
       }
       this.stopWatcher();
       this.ui.setWidget(STATUS_KEY, undefined);
-      const icon = snapshot.status === 'completed' ? '✓' : snapshot.status === 'stopped' ? '◼' : '✗';
-      this.ui.setStatus(STATUS_KEY, `${icon} wf ${snapshot.status} ${done}/${total}`);
+      // A finished run should not haunt the footer — the terminal announcement
+      // (and /workflow status or the workflow_status tool) owns the record.
+      this.ui.setStatus(STATUS_KEY, undefined);
       if (this.announceEligible) {
         this.announceEligible = false;
         this.announceTerminal(snapshot, done, total);

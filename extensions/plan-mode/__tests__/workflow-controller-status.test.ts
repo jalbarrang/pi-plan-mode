@@ -105,7 +105,7 @@ describe('workflow controller ambient status', () => {
     controller.attachUI(ui);
     await controller.launch(workflow);
     await controller.pollOnce();
-    expect(statuses.at(-1)).toBe('✓ wf completed 2/2');
+    expect(statuses.at(-1)).toBeUndefined();
     expect(widgets.at(-1)).toEqual({ key: 'workflow-run', lines: undefined, placement: undefined });
     expect(messages).toHaveLength(1);
     expect(messages[0]!.content).toContain('Background workflow completed');
@@ -119,7 +119,7 @@ describe('workflow controller ambient status', () => {
     state.workflow.runId = 'wf_test';
     controller.attachUI(ui);
     await controller.pollOnce();
-    expect(statuses.at(-1)).toBe('✓ wf completed 2/2');
+    expect(statuses.at(-1)).toBeUndefined();
     expect(messages).toHaveLength(0);
   });
 
