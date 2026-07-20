@@ -1,5 +1,12 @@
 # @dreki-gg/pi-plan-mode
 
+## [0.38.1](https://github.com/jalbarrang/pi-plan-mode/compare/v0.38.0...v0.38.1) (2026-07-20)
+
+
+### Bug Fixes
+
+* **workflow:** clear the footer indicator when a run reaches a terminal state ([1cfa483](https://github.com/jalbarrang/pi-plan-mode/commit/1cfa4835d933b4c3337d1f9b4e378dc9cca43816))
+
 ## [0.38.0](https://github.com/jalbarrang/pi-plan-mode/compare/v0.37.1...v0.38.0) (2026-07-20)
 
 
