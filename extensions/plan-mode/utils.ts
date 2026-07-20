@@ -71,3 +71,56 @@ export function resolveWorkflowDraftFile(input: string, draftsRoot: string = WOR
 
 // Plan name / task id helpers (`toKebabCase`, `nextTaskId`) now live in
 // `@dreki-gg/taskman`.
+
+// ── /workflow argument parsing ──────────────────────────────────────────────
+
+export type WorkflowCommand =
+  | { kind: 'toggle' }
+  | { kind: 'task'; task: string }
+  | { kind: 'status' }
+  | { kind: 'stop' }
+  | { kind: 'resume' }
+  | { kind: 'save'; scope: 'project' | 'user'; name?: string }
+  | { kind: 'run'; scope: 'project' | 'user'; name?: string };
+
+const WORKFLOW_NAME = /^[a-z][a-z0-9-]{0,62}$/;
+
+function isScope(token: string | undefined): token is 'project' | 'user' {
+  return token === 'project' || token === 'user';
+}
+
+/**
+ * Parse `/workflow` arguments. Subcommands are recognized ONLY when the whole
+ * argument string matches their exact grammar; anything else — including
+ * prose that happens to start with "run" or "save" — is a freeform design
+ * task. This keeps `/workflow run a 2-phase smoke: …` from being read as
+ * `run` + saved-workflow name "a".
+ */
+export function parseWorkflowCommand(args: string | undefined): WorkflowCommand {
+  const trimmed = args?.trim() ?? '';
+  if (!trimmed) return { kind: 'toggle' };
+  const [head, ...rest] = trimmed.split(/\s+/);
+
+  if ((head === 'status' || head === 'stop' || head === 'resume') && rest.length === 0) return { kind: head };
+
+  if (head === 'run') {
+    if (rest.length === 0) return { kind: 'run', scope: 'project' };
+    if (rest.length === 1 && WORKFLOW_NAME.test(rest[0]!)) return { kind: 'run', scope: 'project', name: rest[0] };
+    if (rest.length === 2 && isScope(rest[0]) && WORKFLOW_NAME.test(rest[1]!)) {
+      return { kind: 'run', scope: rest[0], name: rest[1] };
+    }
+    return { kind: 'task', task: trimmed };
+  }
+
+  if (head === 'save') {
+    if (rest.length === 0) return { kind: 'save', scope: 'project' };
+    if (rest.length === 1 && isScope(rest[0])) return { kind: 'save', scope: rest[0] };
+    if (rest.length === 1 && WORKFLOW_NAME.test(rest[0]!)) return { kind: 'save', scope: 'project', name: rest[0] };
+    if (rest.length === 2 && isScope(rest[0]) && WORKFLOW_NAME.test(rest[1]!)) {
+      return { kind: 'save', scope: rest[0], name: rest[1] };
+    }
+    return { kind: 'task', task: trimmed };
+  }
+
+  return { kind: 'task', task: trimmed };
+}

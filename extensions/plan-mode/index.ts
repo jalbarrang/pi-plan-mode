@@ -62,7 +62,7 @@ import { registerUpdatePlanTool } from './tools/update-plan.js';
 import { registerUpdateInitiativeTool } from './tools/update-initiative.js';
 import { registerInitiativeStatusTool } from './tools/initiative-status.js';
 import { registerReconcilePlansTool } from './tools/reconcile-plans.js';
-import { isSafeCommand, isPlanPath, isWorkflowDraftPath } from './utils.js';
+import { isSafeCommand, isPlanPath, isWorkflowDraftPath, parseWorkflowCommand } from './utils.js';
 import { PLANS_ROOT, WORKFLOW_DRAFTS_ROOT } from './ledger.js';
 import { handleListPlans } from './commands/list-plans.js';
 import { handlePrototypes } from './commands/prototypes.js';
@@ -326,16 +326,16 @@ export default function planMode(pi: ExtensionAPI): void {
       'Design a bounded background workflow. Usage: /workflow [task | save [project|user] [name] | run [project|user] <name> | status | stop | resume]',
     handler: async (args, ctx) => {
       const trimmed = args?.trim() ?? '';
-      const [command, ...rest] = trimmed.split(/\s+/);
+      const parsed = parseWorkflowCommand(args);
+      const command = parsed.kind;
 
-      if (command === 'save') {
+      if (parsed.kind === 'save') {
         const draft = workflowController.draft;
         if (!draft) {
           ctx.ui.notify('No workflow draft to save. Start with /workflow <task>.', 'error');
           return;
         }
-        const scope = rest[0] === 'user' ? 'user' : 'project';
-        const name = rest[0] === 'project' || rest[0] === 'user' ? rest[1] : rest[0];
+        const { scope, name } = parsed;
         const candidate: WorkflowSpec = name ? { ...draft, name } : draft;
         const validation = validateWorkflowSpec(candidate);
         if (!validation.valid || !validation.normalized) {
@@ -369,9 +369,8 @@ export default function planMode(pi: ExtensionAPI): void {
         return;
       }
 
-      if (command === 'run') {
-        const scope = rest[0] === 'user' ? 'user' : 'project';
-        const name = rest[0] === 'project' || rest[0] === 'user' ? rest[1] : rest[0];
+      if (parsed.kind === 'run') {
+        const { scope, name } = parsed;
         if (!name) {
           ctx.ui.notify('Usage: /workflow run [project|user] <name>', 'error');
           return;
@@ -381,7 +380,11 @@ export default function planMode(pi: ExtensionAPI): void {
           const runId = await workflowController.launch(workflow);
           ctx.ui.notify(`Workflow "${workflow.name}" launched in the background as ${runId}.`, 'info');
         } catch (error) {
-          ctx.ui.notify(error instanceof Error ? error.message : String(error), 'error');
+          const message = error instanceof Error ? error.message : String(error);
+          ctx.ui.notify(
+            `${message}\nSaved workflows are replayed with /workflow run <name>. To design a new one, describe it: /workflow <task>.`,
+            'error',
+          );
         }
         return;
       }

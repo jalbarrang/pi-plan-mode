@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { isSafeCommand, isPlanPath, isWorkflowDraftPath, resolveWorkflowDraftFile } from '../utils.js';
+import { isSafeCommand, isPlanPath, isWorkflowDraftPath, resolveWorkflowDraftFile, parseWorkflowCommand } from '../utils.js';
 import { nextTaskId } from '@dreki-gg/taskman';
 
 describe('nextTaskId', () => {
@@ -193,6 +193,41 @@ describe('resolveWorkflowDraftFile', () => {
   test('rejects path escapes and invalid names', () => {
     expect(() => resolveWorkflowDraftFile('../evil', root)).toThrow('escapes');
     expect(() => resolveWorkflowDraftFile('Not-Kebab', root)).toThrow('kebab-case');
+  });
+});
+
+describe('parseWorkflowCommand', () => {
+  test('prose starting with "run" is a design task, not the run subcommand', () => {
+    expect(parseWorkflowCommand('run a 2-phase smoke: one scout that replies OK, then two scouts in parallel')).toEqual({
+      kind: 'task',
+      task: 'run a 2-phase smoke: one scout that replies OK, then two scouts in parallel',
+    });
+  });
+
+  test('exact run grammar is recognized', () => {
+    expect(parseWorkflowCommand('run audit-routes')).toEqual({ kind: 'run', scope: 'project', name: 'audit-routes' });
+    expect(parseWorkflowCommand('run user audit-routes')).toEqual({ kind: 'run', scope: 'user', name: 'audit-routes' });
+    expect(parseWorkflowCommand('run')).toEqual({ kind: 'run', scope: 'project' });
+  });
+
+  test('save grammar with optional scope and name', () => {
+    expect(parseWorkflowCommand('save')).toEqual({ kind: 'save', scope: 'project' });
+    expect(parseWorkflowCommand('save user')).toEqual({ kind: 'save', scope: 'user' });
+    expect(parseWorkflowCommand('save my-flow')).toEqual({ kind: 'save', scope: 'project', name: 'my-flow' });
+    expect(parseWorkflowCommand('save user my-flow')).toEqual({ kind: 'save', scope: 'user', name: 'my-flow' });
+    expect(parseWorkflowCommand('save the world from bad UX')).toEqual({ kind: 'task', task: 'save the world from bad UX' });
+  });
+
+  test('bare keywords are subcommands only when alone', () => {
+    expect(parseWorkflowCommand('status')).toEqual({ kind: 'status' });
+    expect(parseWorkflowCommand('stop')).toEqual({ kind: 'stop' });
+    expect(parseWorkflowCommand('resume')).toEqual({ kind: 'resume' });
+    expect(parseWorkflowCommand('status of the auth migration')).toEqual({ kind: 'task', task: 'status of the auth migration' });
+  });
+
+  test('empty args toggle the mode', () => {
+    expect(parseWorkflowCommand(undefined)).toEqual({ kind: 'toggle' });
+    expect(parseWorkflowCommand('  ')).toEqual({ kind: 'toggle' });
   });
 });
 
