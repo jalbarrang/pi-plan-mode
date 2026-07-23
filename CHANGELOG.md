@@ -1,5 +1,12 @@
 # @dreki-gg/pi-plan-mode
 
+## [0.39.0](https://github.com/jalbarrang/pi-plan-mode/compare/v0.38.1...v0.39.0) (2026-07-23)
+
+
+### Features
+
+* **workflow:** show Model and reference-token Output columns in approval table ([3dd7ade](https://github.com/jalbarrang/pi-plan-mode/commit/3dd7ade360cdc081c1ba202b748767a7760812c1))
+
 ## [0.38.1](https://github.com/jalbarrang/pi-plan-mode/compare/v0.38.0...v0.38.1) (2026-07-20)
 
 
