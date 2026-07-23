@@ -44,9 +44,10 @@ describe('validateWorkflowSpec', () => {
     const lines = table.split('\n');
     // header + divider + scout + fan-out + two parallel children
     expect(lines).toHaveLength(6);
-    expect(lines[0]).toMatch(/#\s+Phase\s+Agent\s+Output\s+Task/);
+    expect(lines[0]).toMatch(/#\s+Phase\s+Agent\s+Model\s+Output\s+Task/);
     expect(table).toContain('reviewer ×≤4');
-    expect(table).toContain('reviews');
+    expect(table).toContain('{outputs.reviews}');
+    expect(table).toContain('{outputs.styles}');
     expect(table).toContain('Final review');
     expect(table).toContain('reviewer-b');
     expect(table).not.toContain('"chain"');

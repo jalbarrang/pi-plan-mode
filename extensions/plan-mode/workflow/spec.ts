@@ -243,12 +243,13 @@ function truncate(text: string, max: number): string {
  * children share their phase number.
  */
 export function workflowTable(spec: WorkflowSpec): string {
-  const header = ['#', 'Phase', 'Agent', 'Output', 'Task'];
+  const header = ['#', 'Phase', 'Agent', 'Model', 'Output', 'Task'];
+  const outputRef = (name?: string) => (name ? `{outputs.${name}}` : '—');
   const rows: string[][] = [];
   spec.chain.forEach((step, index) => {
     const phase = truncate(phaseLabel(step, index), 24);
     if ('agent' in step) {
-      rows.push([String(index + 1), phase, step.agent, step.as ?? '—', truncate(step.task, 48)]);
+      rows.push([String(index + 1), phase, step.agent, step.model ?? '—', outputRef(step.as), truncate(step.task, 48)]);
       return;
     }
     if ('expand' in step) {
@@ -256,7 +257,8 @@ export function workflowTable(spec: WorkflowSpec): string {
         String(index + 1),
         phase,
         `${step.parallel.agent} ×≤${step.expand.maxItems}`,
-        step.collect.as,
+        step.parallel.model ?? '—',
+        outputRef(step.collect.as),
         truncate(step.parallel.task, 48),
       ]);
       return;
@@ -266,7 +268,8 @@ export function workflowTable(spec: WorkflowSpec): string {
         childIndex === 0 ? String(index + 1) : '',
         childIndex === 0 ? phase : '',
         child.agent,
-        child.as ?? '—',
+        child.model ?? '—',
+        outputRef(child.as),
         truncate(child.task, 48),
       ]);
     });
