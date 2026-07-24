@@ -3,14 +3,13 @@
  */
 
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
-import type { PlanData, PersistedState, PlanModePhase, WorkflowSessionState } from './types.js';
+import type { PlanData, PersistedState, PlanModePhase } from './types.js';
 
 export class PlanModeState {
   phase: PlanModePhase = 'idle';
   planDir: string | undefined;
   plan: PlanData | undefined;
   executionStartIdx: number | undefined;
-  workflow: WorkflowSessionState = {};
   previousModel: { provider: string; id: string } | undefined;
   /**
    * Active toolset captured when entering a mode from idle. Exiting to idle
@@ -46,10 +45,6 @@ export class PlanModeState {
     }
   }
 
-  get workflowEnabled(): boolean {
-    return this.phase === 'workflow';
-  }
-
   persist(pi: ExtensionAPI): void {
     pi.appendEntry<PersistedState>('plan-mode', {
       phase: this.phase,
@@ -60,7 +55,6 @@ export class PlanModeState {
       planDir: this.planDir,
       plan: this.plan,
       executionStartIdx: this.executionStartIdx,
-      workflow: this.workflow,
       preModeActiveTools: this.preModeActiveTools,
     });
   }
@@ -68,16 +62,21 @@ export class PlanModeState {
   restore(entries: Array<{ type: string; customType?: string; data?: PersistedState }>): void {
     const saved = entries.filter((e) => e.type === 'custom' && e.customType === 'plan-mode').pop();
     if (saved?.data) {
+      const savedPhase = saved.data.phase;
       this.phase =
-        saved.data.phase ??
-        (saved.data.executing ? 'execute' : saved.data.planEnabled ? 'plan' : this.phase);
+        savedPhase === 'idle' || savedPhase === 'plan' || savedPhase === 'execute'
+          ? savedPhase
+          : saved.data.executing
+            ? 'execute'
+            : saved.data.planEnabled
+              ? 'plan'
+              : 'idle';
       // planDir is ledger-relative (a bare plan name). Sessions persisted by
       // older versions stored `.plans/<name>` — normalize to the last segment.
       const savedDir = saved.data.planDir;
       this.planDir = savedDir ? (savedDir.replace(/\/+$/, '').split('/').pop() ?? savedDir) : this.planDir;
       this.plan = saved.data.plan ?? this.plan;
       this.executionStartIdx = saved.data.executionStartIdx ?? this.executionStartIdx;
-      this.workflow = saved.data.workflow ?? this.workflow;
       this.preModeActiveTools = saved.data.preModeActiveTools ?? this.preModeActiveTools;
     }
   }
@@ -87,7 +86,6 @@ export class PlanModeState {
     this.planDir = undefined;
     this.plan = undefined;
     this.executionStartIdx = undefined;
-    this.workflow = {};
     this.preModeActiveTools = undefined;
   }
 

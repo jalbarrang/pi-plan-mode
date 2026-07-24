@@ -1,8 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { buildPlanModePrompt, buildExecutionPrompt } from '../prompts.js';
-import { PLAN_TOOLS, WORKFLOW_TOOLS } from '../constants.js';
+import { PLAN_TOOLS } from '../constants.js';
 import type { PlanData, TaskRecord } from '../types.js';
-import { buildWorkflowModePrompt } from '../workflow/prompt.js';
 
 const now = '2026-01-01T00:00:00Z';
 function makeTask(overrides?: Partial<TaskRecord>): TaskRecord {
@@ -128,23 +127,5 @@ describe('PLAN_TOOLS', () => {
 
   test('includes search_skills for skill discovery', () => {
     expect(PLAN_TOOLS).toContain('search_skills');
-  });
-});
-
-describe('buildWorkflowModePrompt', () => {
-  test('requires explicit approval and bounded fan-out', () => {
-    const prompt = buildWorkflowModePrompt();
-    expect(prompt).toContain('submit_workflow');
-    expect(prompt).toContain('maxItems');
-    expect(prompt).toMatch(/approval-and-launch/i);
-  });
-
-  test('allows draft writes and teaches the file-based submission flow', () => {
-    const prompt = buildWorkflowModePrompt();
-    expect(WORKFLOW_TOOLS).toEqual(expect.arrayContaining(['write', 'edit', 'workflow_status']));
-    expect(prompt).toContain('workflow_status');
-    expect(prompt).toContain('.taskman/workflows/<name>.json');
-    expect(prompt).toContain('file: "<name>"');
-    expect(prompt).toContain('Bash is read-only');
   });
 });

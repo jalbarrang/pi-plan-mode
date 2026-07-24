@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { PlanModeState } from '../state.js';
-import { enterPlanMode, enterWorkflowMode, exitPlanMode, exitWorkflowMode, restoreIdleTools, startExecution } from '../phase-transitions.js';
+import { enterPlanMode, exitPlanMode, restoreIdleTools, startExecution } from '../phase-transitions.js';
 import type { PlanData, TaskRecord } from '../types.js';
 
 function makePi(activeTools: string[], allTools: string[] = activeTools) {
@@ -44,7 +44,7 @@ function makePlan(overrides?: Partial<PlanData>): PlanData {
 }
 
 describe('PlanModeState', () => {
-  test('keeps plan, execution, and workflow modes mutually exclusive', () => {
+  test('keeps plan and execution modes mutually exclusive', () => {
     const state = new PlanModeState();
     state.planEnabled = true;
     expect(state.phase).toBe('plan');
@@ -53,11 +53,6 @@ describe('PlanModeState', () => {
     state.executing = true;
     expect(state.phase).toBe('execute');
     expect(state.planEnabled).toBe(false);
-
-    state.phase = 'workflow';
-    expect(state.workflowEnabled).toBe(true);
-    expect(state.planEnabled).toBe(false);
-    expect(state.executing).toBe(false);
   });
 
   test('restores legacy plan and execution entries into the canonical phase', () => {
@@ -75,8 +70,54 @@ describe('PlanModeState', () => {
     expect(executionState.phase).toBe('execute');
   });
 
+  test('coerces a legacy workflow phase to idle before a new plan transition', async () => {
+    const state = new PlanModeState();
+    const legacyEntry = {
+      type: 'custom',
+      customType: 'plan-mode',
+      data: {
+        phase: 'workflow',
+        planEnabled: false,
+        executing: false,
+        planDir: undefined,
+        plan: undefined,
+        executionStartIdx: undefined,
+      },
+    } as unknown as Parameters<PlanModeState['restore']>[0][number];
+    state.restore([legacyEntry]);
+    expect(state.phase).toBe('idle');
+
+    const originalTools = ['read', 'bash', 'subagent', 'questionnaire', 'my_custom_tool'];
+    const { pi, calls } = makePi(originalTools);
+    const ctx = makeCtx();
+    await enterPlanMode(state, pi, ctx);
+    await exitPlanMode(state, pi, ctx);
+    expect(calls.at(-1)).toEqual(originalTools);
+  });
+
+  test('uses legacy flags for unknown persisted phases and otherwise restores idle', () => {
+    const makeEntry = (data: Record<string, unknown>) =>
+      ({
+        type: 'custom',
+        customType: 'plan-mode',
+        data: { planDir: undefined, plan: undefined, executionStartIdx: undefined, ...data },
+      }) as unknown as Parameters<PlanModeState['restore']>[0][number];
+
+    const executionState = new PlanModeState();
+    executionState.restore([makeEntry({ phase: 'future', executing: true })]);
+    expect(executionState.phase).toBe('execute');
+
+    const planState = new PlanModeState();
+    planState.restore([makeEntry({ phase: 'future', planEnabled: true })]);
+    expect(planState.phase).toBe('plan');
+
+    const idleState = new PlanModeState();
+    idleState.restore([makeEntry({ phase: 'future' })]);
+    expect(idleState.phase).toBe('idle');
+  });
+
   describe('idle toolset snapshot', () => {
-    const IDLE_TOOLS = ['read', 'bash', 'subagent', 'questionnaire', 'submit_workflow', 'my_custom_tool'];
+    const IDLE_TOOLS = ['read', 'bash', 'subagent', 'questionnaire', 'my_custom_tool'];
 
     test('exiting plan mode restores the toolset captured on entry, not EXEC_TOOLS', async () => {
       const state = new PlanModeState();
@@ -91,16 +132,6 @@ describe('PlanModeState', () => {
       expect(state.preModeActiveTools).toBeUndefined();
     });
 
-    test('exiting workflow mode restores the toolset captured on entry', async () => {
-      const state = new PlanModeState();
-      const { pi, calls } = makePi(IDLE_TOOLS);
-      const ctx = makeCtx();
-
-      enterWorkflowMode(state, pi, ctx);
-      await exitWorkflowMode(state, pi, ctx);
-      expect(calls.at(-1)).toEqual(IDLE_TOOLS);
-    });
-
     test('plan→execute keeps the original idle snapshot across the transition', async () => {
       const state = new PlanModeState();
       const { pi } = makePi(IDLE_TOOLS);
@@ -113,10 +144,10 @@ describe('PlanModeState', () => {
 
     test('restoreIdleTools falls back to every registered tool for legacy sessions', () => {
       const state = new PlanModeState(); // no snapshot persisted
-      const { pi, calls } = makePi([], ['read', 'bash', 'edit', 'write', 'subagent', 'submit_workflow']);
+      const { pi, calls } = makePi([], ['read', 'bash', 'edit', 'write', 'subagent', 'questionnaire']);
 
       restoreIdleTools(state, pi);
-      expect(calls.at(-1)).toEqual(['read', 'bash', 'edit', 'write', 'subagent', 'submit_workflow']);
+      expect(calls.at(-1)).toEqual(['read', 'bash', 'edit', 'write', 'subagent', 'questionnaire']);
     });
 
     test('snapshot round-trips through persistence entries', () => {

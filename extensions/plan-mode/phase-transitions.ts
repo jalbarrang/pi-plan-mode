@@ -4,11 +4,7 @@
 
 import type { ExtensionAPI, ExtensionContext } from '@earendil-works/pi-coding-agent';
 import type { PlanModeState } from './state.js';
-import {
-  PLAN_TOOLS,
-  EXEC_TOOLS,
-  WORKFLOW_TOOLS,
-} from './constants.js';
+import { PLAN_TOOLS, EXEC_TOOLS } from './constants.js';
 import { updateUI } from './ui.js';
 
 export async function switchModel(
@@ -31,8 +27,8 @@ export async function switchModel(
 
 /**
  * Snapshot the idle active toolset before a mode narrows it. Only captures
- * when leaving idle — plan→execute and workflow→plan transitions keep the
- * original snapshot so the eventual exit restores the true pre-mode set.
+ * when leaving idle — plan→execute keeps the original snapshot so the
+ * eventual exit restores the true pre-mode set.
  */
 export function captureIdleTools(state: PlanModeState, pi: ExtensionAPI): void {
   if (state.phase === 'idle') state.preModeActiveTools = pi.getActiveTools();
@@ -62,33 +58,6 @@ export async function enterPlanMode(
   state.previousModel = ctx.model ? { provider: ctx.model.provider, id: ctx.model.id } : undefined;
   pi.setActiveTools(PLAN_TOOLS);
   ctx.ui.notify('Plan mode ON', 'info');
-  updateUI(state, ctx);
-  state.persist(pi);
-}
-
-/** Enter read-only workflow design without discarding the attached plan. */
-export function enterWorkflowMode(
-  state: PlanModeState,
-  pi: ExtensionAPI,
-  ctx: ExtensionContext,
-): void {
-  captureIdleTools(state, pi);
-  state.phase = 'workflow';
-  state.executionStartIdx = undefined;
-  pi.setActiveTools(WORKFLOW_TOOLS);
-  ctx.ui.notify('Workflow mode ON', 'info');
-  updateUI(state, ctx);
-  state.persist(pi);
-}
-
-export async function exitWorkflowMode(
-  state: PlanModeState,
-  pi: ExtensionAPI,
-  ctx: ExtensionContext,
-): Promise<void> {
-  state.exitPreservingPlan();
-  restoreIdleTools(state, pi);
-  ctx.ui.notify('Workflow mode OFF', 'info');
   updateUI(state, ctx);
   state.persist(pi);
 }
