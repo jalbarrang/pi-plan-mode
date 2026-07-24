@@ -1,5 +1,16 @@
 # @dreki-gg/pi-plan-mode
 
+## [0.40.0](https://github.com/jalbarrang/pi-plan-mode/compare/v0.39.0...v0.40.0) (2026-07-24)
+
+
+### ⚠ BREAKING CHANGES
+
+* removes the /workflow command, submit_workflow and workflow_status tools, and direct-path extensions/plan-mode/workflow/* modules.
+
+### Features
+
+* remove dynamic workflow mode ([ed1079f](https://github.com/jalbarrang/pi-plan-mode/commit/ed1079f85ccbf20f0354cbc23ed68947fe07dbc0))
+
 ## [0.39.0](https://github.com/jalbarrang/pi-plan-mode/compare/v0.38.1...v0.39.0) (2026-07-23)
 
 
