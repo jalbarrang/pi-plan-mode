@@ -1,3 +1,7 @@
 allowBuilds:
   '@google/genai': false
   protobufjs: false
+minimumReleaseAgeExclude:
+  - '@earendil-works/pi-ai@0.85.0'
+  - '@earendil-works/pi-telemetry@0.85.0'
+  - '@earendil-works/pi-tui@0.85.0'
